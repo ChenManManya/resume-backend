@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url:
+    username: root
+    password: Huanyuan2.
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      database: 0
+      host: localhost
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 8
+          min-idle: 0
+          max-wait: 5s
