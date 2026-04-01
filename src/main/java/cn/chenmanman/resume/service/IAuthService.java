@@ -15,5 +15,5 @@ public interface IAuthService {
      * 用户注册
      * @param request 用户注册请求体
      * */
-    void Register(UserRegisterPostRequest request);
+    void register(UserRegisterPostRequest request);
 }

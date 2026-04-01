@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc://localhost:3306/resume_db
+    url: jdbc:mysql://localhost:3306/resume_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: Huanyuan2.
     driver-class-name: com.mysql.cj.jdbc.Driver

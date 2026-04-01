@@ -37,7 +37,7 @@ public class AuthServiceImpl implements IAuthService {
     @Override
     public String login(UserLoginPostRequest request) {
 
-        String redisKey = "login:captcha:" + request.getCaptchaKey();
+        String redisKey = "manman_resume:login:captcha:" + request.getCaptchaKey();
         String cacheCode = redisUtil.get(redisKey);
 
         BizAssert.notNull(cacheCode, UserErrorCode.CAPTCHA_EXPIRE);
@@ -69,8 +69,8 @@ public class AuthServiceImpl implements IAuthService {
      *
      */
     @Override
-    public void Register(UserRegisterPostRequest request) {
-        String redisKey = "login:captcha:" + request.getCaptchaKey();
+    public void register(UserRegisterPostRequest request) {
+        String redisKey = "manman_resume:login:captcha:" + request.getCaptchaKey();
         String cacheCode = redisUtil.get(redisKey);
         BizAssert.notNull(cacheCode, UserErrorCode.CAPTCHA_EXPIRE);
         BizAssert.isTrue(cacheCode.equalsIgnoreCase(request.getCaptchaCode()), UserErrorCode.CAPTCHA_WRONG);

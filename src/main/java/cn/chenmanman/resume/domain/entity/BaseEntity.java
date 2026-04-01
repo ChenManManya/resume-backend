@@ -1,7 +1,9 @@
 package cn.chenmanman.resume.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
@@ -11,6 +13,8 @@ import java.time.LocalDateTime;
  * author: 陈慢慢
  * */
 @SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 @Data
 public class BaseEntity {
     @TableId

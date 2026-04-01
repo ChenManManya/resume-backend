@@ -7,9 +7,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serial;
 import java.io.Serializable;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 用户表
@@ -19,7 +18,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName(value ="sys_user")
 @Data
-@Builder
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SysUserEntity extends BaseEntity implements Serializable {
     /**
      * 用户名
@@ -56,20 +57,12 @@ public class SysUserEntity extends BaseEntity implements Serializable {
      */
     private Integer employmentStatus;
 
-    /**
-     * 修改人
-     */
-    private Long updateBy;
 
     /**
      * 用户状态(0:正常, 1:禁用)
      * */
     private Integer status;
 
-    /**
-     * 逻辑删除(0:未删除,1:已删除)
-     */
-    private Integer deleted;
 
     @Serial
     @TableField(exist = false)

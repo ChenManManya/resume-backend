@@ -29,7 +29,7 @@ public class CaptchaController {
         String code = captcha.getCode();
         String captchaKey = IdUtil.simpleUUID();
 
-        redisUtil.set("login:captcha:" + captchaKey, code, 5, TimeUnit.MINUTES);
+        redisUtil.set("manman_resume:login:captcha:" + captchaKey, code, 5, TimeUnit.MINUTES);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         captcha.write(outputStream);
