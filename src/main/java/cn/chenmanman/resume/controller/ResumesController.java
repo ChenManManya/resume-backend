@@ -1,6 +1,5 @@
 package cn.chenmanman.resume.controller;
 
-import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.Result;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumeVersionsRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
