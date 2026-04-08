@@ -1,10 +1,16 @@
 server:
   port: 8080
-  servlet:
-    context-path: /api
+#  servlet:
+#    context-path: /api
 spring:
   profiles:
     active: dev
+app:
+  upload:
+    base-dir: uploads
+    public-path: /uploads
+    avatar-dir: avatars
+    max-avatar-size-bytes: 2097152
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   configuration:
