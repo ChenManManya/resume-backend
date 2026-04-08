@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.chenmanman.resume.mapper.TemplatesMapper">
+
+    <resultMap id="BaseResultMap" type="cn.chenmanman.resume.domain.entity.resume.TemplatesEntity">
+            <id property="id" column="id" />
+            <result property="code" column="code" />
+            <result property="name" column="name" />
+            <result property="description" column="description" />
+            <result property="previewImageUrl" column="preview_image_url" />
+            <result property="category" column="category" />
+            <result property="isActive" column="is_active" />
+            <result property="schemaJson" column="schema_json" />
+            <result property="styleJson" column="style_json" />
+            <result property="createBy" column="create_by" />
+            <result property="updateBy" column="update_by" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,code,name,description,preview_image_url,category,
+        is_active,schema_json,style_json,create_by,update_by,
+        create_time,update_time,is_deleted
+    </sql>
+</mapper>

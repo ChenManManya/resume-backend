@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="generator.mapper.SysUserMapper">
+<mapper namespace="cn.chenmanman.resume.mapper.SysUserMapper">
 
-    <resultMap id="BaseResultMap" type="cn.chenmanman.resume.domain.entity.user.SysUser">
+    <resultMap id="BaseResultMap" type="cn.chenmanman.resume.domain.entity.user.SysUserEntity">
             <id property="id" column="id" />
             <result property="username" column="username" />
             <result property="passwordHash" column="password_hash" />
@@ -17,7 +17,7 @@
             <result property="updateTime" column="update_time" />
             <result property="createBy" column="create_by" />
             <result property="updateBy" column="update_by" />
-            <result property="deleted" column="deleted" />
+            <result property="isDeleted" column="deleted" />
     </resultMap>
 
     <sql id="Base_Column_List">
