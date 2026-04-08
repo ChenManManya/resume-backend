@@ -5,6 +5,7 @@ import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
+import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumeVersionsVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
 
@@ -26,4 +27,7 @@ public interface IResumesService {
     void exportPdf(Long resumeId, ExportResumePdfRequestPost request);
 
     void exportPng(Long resumeId, ExportResumePngRequestPost request);
+
+    List<MyResumesVO> listResumesMe();
+
 }

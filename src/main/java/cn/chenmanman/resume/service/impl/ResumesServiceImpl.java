@@ -10,6 +10,7 @@ import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
 import cn.chenmanman.resume.domain.entity.resume.ResumeVersionsEntity;
 import cn.chenmanman.resume.domain.entity.resume.ResumesEntity;
 import cn.chenmanman.resume.domain.entity.resume.TemplatesEntity;
+import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumeVersionsVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
 import cn.chenmanman.resume.mapper.ResumeVersionsMapper;
@@ -19,6 +20,7 @@ import cn.chenmanman.resume.service.IResumesService;
 import cn.chenmanman.resume.utils.BizAssert;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -190,6 +192,24 @@ public class ResumesServiceImpl implements IResumesService {
     public void exportPng(Long resumeId, ExportResumePngRequestPost request) {
         validateExportRequest(resumeId, request == null ? null : request.getVersionId());
         BizAssert.fail(ResumesErrorCode.RESUME_EXPORT_NOT_SUPPORTED);
+    }
+
+    @Override
+    public List<MyResumesVO> listResumesMe() {
+        Long userId = StpUtil.getLoginIdAsLong();
+
+        return resumesMapper.selectList(Wrappers.<ResumesEntity>lambdaQuery()
+                .eq(ResumesEntity::getUserId, userId))
+                .stream()
+                .map(entity -> MyResumesVO.builder().
+                        id(entity.getId())
+                        .title(entity.getTitle())
+                        .templateId(entity.getTemplateId())
+                        .updateTime(entity.getUpdateTime())
+                        .status(entity.getStatus())
+                        .build()
+                )
+                .toList();
     }
 
     private void validateExportRequest(Long resumeId, Long versionId) {

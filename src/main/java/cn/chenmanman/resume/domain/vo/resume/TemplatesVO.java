@@ -14,4 +14,5 @@ public class TemplatesVO {
     private String category;
     private Object schemaJson;
     private Object styleJson;
+    private Object tags;
 }

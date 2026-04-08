@@ -1,11 +1,13 @@
 package cn.chenmanman.resume.controller;
 
+import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.Result;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumeVersionsRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
+import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumeVersionsVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
 import cn.chenmanman.resume.service.IResumesService;
@@ -38,6 +40,14 @@ public class ResumesController {
     @GetMapping("/{resumeId}")
     public Result<ResumesVO> getResumeDetail(@PathVariable Long resumeId) {
         return Result.success(resumesService.getResumeDetail(resumeId));
+    }
+
+
+    @GetMapping("/my")
+    public Result<List<MyResumesVO>> listResumesMe() {
+
+
+        return Result.success(resumesService.listResumesMe());
     }
 
     @PutMapping("/{resumeId}/draft")
