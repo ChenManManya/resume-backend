@@ -15,4 +15,6 @@ public class TemplatesVO {
     private Object schemaJson;
     private Object styleJson;
     private Object tags;
+    private Integer usageNumber;
+    private String defaultContentJson;
 }

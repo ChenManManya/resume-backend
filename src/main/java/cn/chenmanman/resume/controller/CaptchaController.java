@@ -1,5 +1,6 @@
 package cn.chenmanman.resume.controller;
 
+import cn.chenmanman.resume.common.Result;
 import cn.chenmanman.resume.domain.vo.user.CaptchaVO;
 import cn.chenmanman.resume.utils.RedisUtil;
 import cn.hutool.captcha.CircleCaptcha;
@@ -24,7 +25,7 @@ public class CaptchaController {
      * 生成验证码并且响应
      * */
     @GetMapping("/captcha")
-    public CaptchaVO getCaptcha() {
+    public Result<CaptchaVO> getCaptcha() {
         CircleCaptcha captcha = new CircleCaptcha(120, 40, 4, 20);
         String code = captcha.getCode();
         String captchaKey = IdUtil.simpleUUID();
@@ -35,6 +36,6 @@ public class CaptchaController {
         captcha.write(outputStream);
         String base64 = Base64.encode(outputStream.toByteArray());
 
-        return new CaptchaVO(captchaKey, "data:image/png;base64," + base64);
+        return Result.success(new CaptchaVO(captchaKey, "data:image/png;base64," + base64));
     }
 }

@@ -60,6 +60,18 @@ public class TemplatesEntity extends BaseEntity implements Serializable {
      */
     private Object styleJson;
 
+    /**
+     * 模板的标签
+     * */
+    private Object tags;
+
+    /**
+     * 模板被使用次数
+     * */
+    private Integer usageNumber;
+
+    private String defaultContentJson;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

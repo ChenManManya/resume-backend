@@ -1,5 +1,6 @@
 package cn.chenmanman.resume.utils;
 
+import cn.chenmanman.resume.common.error.ResumesErrorCode;
 import cn.chenmanman.resume.common.error.UserErrorCode;
 import cn.chenmanman.resume.common.exception.BusinessException;
 import cn.chenmanman.resume.config.LocalUploadProperties;
@@ -22,7 +23,6 @@ import java.util.UUID;
 public class LocalFileUploadUtil {
 
     private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of(".png", ".jpg", ".jpeg", ".gif", ".webp");
-    private static final Set<String> ALLOWED_IMAGE_CONTENT_TYPES = Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
 
     private final LocalUploadProperties localUploadProperties;
     private final ServerProperties serverProperties;
@@ -30,6 +30,12 @@ public class LocalFileUploadUtil {
     public String uploadAvatar(MultipartFile file) {
         validateAvatarFile(file);
         return upload(file, localUploadProperties.getAvatarDir());
+    }
+
+
+    public String uploadPhoto(MultipartFile file) {
+        validatePhotoFile(file);
+        return upload(file, localUploadProperties.getResumePhotoDir());
     }
 
     public String upload(MultipartFile file, String subDirectory) {
@@ -110,7 +116,18 @@ public class LocalFileUploadUtil {
         String extension = extractExtension(file.getOriginalFilename());
         String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
         BizAssert.isTrue(ALLOWED_IMAGE_EXTENSIONS.contains(extension), UserErrorCode.AVATAR_FILE_TYPE_INVALID);
-        BizAssert.isTrue(ALLOWED_IMAGE_CONTENT_TYPES.contains(contentType), UserErrorCode.AVATAR_FILE_TYPE_INVALID);
+    }
+
+    private void validatePhotoFile(MultipartFile file) {
+        BizAssert.notNull(file, ResumesErrorCode.PHOTO_FILE_EMPTY);
+
+        BizAssert.isFalse(file.isEmpty(), ResumesErrorCode.PHOTO_FILE_EMPTY);
+        BizAssert.isTrue(file.getSize() <= localUploadProperties.getMaxPhotoSizeBytes(), ResumesErrorCode.PHOTO_FILE_TOO_LARGE);
+
+        String extension = extractExtension(file.getOriginalFilename());
+        String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
+        BizAssert.isTrue(ALLOWED_IMAGE_EXTENSIONS.contains(extension), ResumesErrorCode.PHOTO_FILE_TYPE_INVALID);
+
     }
 
     private String extractExtension(String originalFilename) {

@@ -14,6 +14,7 @@
             <result property="isActive" column="is_active" />
             <result property="schemaJson" column="schema_json" />
             <result property="styleJson" column="style_json" />
+            <result property="defaultContentJS" column="default_content_json" />
             <result property="tags" column="tags" />
             <result property="createBy" column="create_by" />
             <result property="updateBy" column="update_by" />
@@ -24,7 +25,7 @@
 
     <sql id="Base_Column_List">
         id,code,name,description,preview_image_url,category,
-        is_active,schema_json,style_json,tags,create_by,update_by,
+        is_active,schema_json,style_json, default_content_json,tags,create_by,update_by,
         create_time,update_time,is_deleted
     </sql>
 </mapper>
