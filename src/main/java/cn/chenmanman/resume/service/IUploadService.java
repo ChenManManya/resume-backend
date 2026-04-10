@@ -6,4 +6,6 @@ import org.springframework.web.multipart.MultipartFile;
 public interface IUploadService {
 
     String uploadResumePhoto(MultipartFile file);
+
+    String uploadUserAvatar(MultipartFile file);
 }

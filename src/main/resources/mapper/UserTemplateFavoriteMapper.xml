@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.chenmanman.resume.mapper.UserTemplateFavoriteMapper">
+
+    <resultMap id="BaseResultMap" type="cn.chenmanman.resume.domain.entity.resume.UserTemplateFavoriteEntity">
+            <id property="id" column="id" />
+            <result property="templateId" column="template_id" />
+            <result property="name" column="name" />
+            <result property="previewImageUrl" column="preview_image_url" />
+            <result property="createTime" column="create_time" />
+            <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+
+    <select id="selectUserFavoriteTemplate" resultType="cn.chenmanman.resume.domain.vo.resume.UserFavoriteVO">
+        SELECT
+            f.id AS favorite_id,
+            t.id AS template_id,
+            t.name,
+            t.preview_image_url,
+            f.create_time AS favorite_time,
+            f.is_deleted
+        FROM user_template_favorite f
+                 INNER JOIN templates t ON f.template_id = t.id
+        WHERE f.user_id = #{userId}
+        ORDER BY f.create_time DESC
+    </select>
+</mapper>

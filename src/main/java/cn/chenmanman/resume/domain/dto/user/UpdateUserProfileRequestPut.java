@@ -16,5 +16,5 @@ public class UpdateUserProfileRequestPut {
 
     private Integer employmentStatus;
 
-    private MultipartFile avatarFile;
+    private String avatar;
 }

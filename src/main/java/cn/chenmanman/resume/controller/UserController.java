@@ -7,11 +7,7 @@ import cn.chenmanman.resume.service.IUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
 @RestController
@@ -25,8 +21,8 @@ public class UserController {
         return Result.success(userService.getProfile());
     }
 
-    @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result<UserProfileVO> updateProfile(@Valid @ModelAttribute UpdateUserProfileRequestPut request) {
+    @PutMapping(value = "/profile")
+    public Result<UserProfileVO> updateProfile(@Valid @RequestBody UpdateUserProfileRequestPut request) {
         return Result.success(userService.updateProfile(request));
     }
 }

@@ -5,10 +5,14 @@ import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.error.ResumesErrorCode;
 import cn.chenmanman.resume.domain.dto.template.TemplateMatchPageRequest;
 import cn.chenmanman.resume.domain.entity.resume.TemplatesEntity;
+import cn.chenmanman.resume.domain.entity.resume.UserTemplateFavoriteEntity;
 import cn.chenmanman.resume.domain.vo.resume.TemplatesVO;
+import cn.chenmanman.resume.domain.vo.resume.UserFavoriteVO;
 import cn.chenmanman.resume.mapper.TemplatesMapper;
+import cn.chenmanman.resume.mapper.UserTemplateFavoriteMapper;
 import cn.chenmanman.resume.service.ITemplatesService;
 import cn.chenmanman.resume.utils.BizAssert;
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.json.JSONArray;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -32,6 +36,7 @@ public class TemplatesServiceImpl implements ITemplatesService {
 
     private final TemplatesMapper templatesMapper;
     private final ObjectMapper objectMapper;
+    private final UserTemplateFavoriteMapper userTemplateFavoriteMapper;
 
     @Override
     public List<TemplatesVO> listTemplates() {
@@ -93,13 +98,48 @@ public class TemplatesServiceImpl implements ITemplatesService {
     }
 
     @Override
+    public PageResult<UserFavoriteVO> listFavoriteTemplate(PageRequest pageRequest) {
+        PageRequest currentPageRequest = pageRequest == null ? new PageRequest() : pageRequest;
+        int currentPageNum = currentPageRequest.getSafePageNum();
+        int currentPageSize = currentPageRequest.getSafePageSize();
+        long userId = StpUtil.getLoginIdAsLong();
+        Page<UserFavoriteVO> page = userTemplateFavoriteMapper.selectUserFavoriteTemplate(new Page<>(currentPageNum, currentPageSize),userId);
+        PageResult<UserFavoriteVO> pageResult = new PageResult<>();
+        pageResult.setTotal(page.getTotal());
+        pageResult.setPageNum(currentPageNum);
+        pageResult.setPageSize(currentPageSize);
+        pageResult.setList(page.getRecords());
+        return pageResult;
+    }
+
+    @Override
+    public void favoriteTemplate(Long templateId) {
+        long userId = StpUtil.getLoginIdAsLong();
+        Boolean isFavorite = this.isFavoriteTemplate(templateId);
+        if (!isFavorite) {
+            userTemplateFavoriteMapper.insert(UserTemplateFavoriteEntity.builder().userId(userId).templateId(templateId).build());
+        } else {
+            userTemplateFavoriteMapper.delete(Wrappers.<UserTemplateFavoriteEntity>lambdaQuery().eq(UserTemplateFavoriteEntity::getTemplateId, templateId).eq(UserTemplateFavoriteEntity::getUserId, userId));
+        }
+
+    }
+
+    @Override
+    public Boolean isFavoriteTemplate(Long templateId) {
+        long userId = StpUtil.getLoginIdAsLong();
+
+
+
+        return Objects.nonNull(userTemplateFavoriteMapper.selectOne(Wrappers.<UserTemplateFavoriteEntity>lambdaQuery().eq(UserTemplateFavoriteEntity::getTemplateId, templateId).eq(UserTemplateFavoriteEntity::getUserId, userId)));
+    }
+
+    @Override
     public PageResult<TemplatesVO> pageTemplates(TemplateMatchPageRequest pageRequest) {
         TemplateMatchPageRequest currentPageRequest = pageRequest == null ? new TemplateMatchPageRequest() : pageRequest;
         int currentPageNum = currentPageRequest.getSafePageNum();
         int currentPageSize = currentPageRequest.getSafePageSize();
 
         LambdaQueryWrapper<TemplatesEntity> queryWrapper = new LambdaQueryWrapper<TemplatesEntity>()
-                .eq(TemplatesEntity::getIsDeleted, 0)
                 .eq(TemplatesEntity::getIsActive, 1)
                 .orderByAsc(TemplatesEntity::getId);
 

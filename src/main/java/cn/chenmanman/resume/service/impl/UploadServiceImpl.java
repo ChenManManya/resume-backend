@@ -25,4 +25,9 @@ public class UploadServiceImpl implements IUploadService {
         return localFileUploadUtil.uploadPhoto(file);
     }
 
+    @Override
+    public String uploadUserAvatar(MultipartFile file) {
+        return localFileUploadUtil.uploadAvatar(file);
+    }
+
 }

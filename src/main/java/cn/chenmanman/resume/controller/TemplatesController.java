@@ -1,9 +1,11 @@
 package cn.chenmanman.resume.controller;
 
+import cn.chenmanman.resume.common.PageRequest;
 import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.Result;
 import cn.chenmanman.resume.domain.dto.template.TemplateMatchPageRequest;
 import cn.chenmanman.resume.domain.vo.resume.TemplatesVO;
+import cn.chenmanman.resume.domain.vo.resume.UserFavoriteVO;
 import cn.chenmanman.resume.service.ITemplatesService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,5 +44,23 @@ public class TemplatesController {
     @GetMapping("/page")
     public Result<PageResult<TemplatesVO>> pageTemplates(@ModelAttribute TemplateMatchPageRequest request) {
         return Result.success(templatesService.pageTemplates(request));
+    }
+
+
+    @GetMapping("/favorite")
+    public Result<String> favoriteTemplate(Long templateId) {
+        templatesService.favoriteTemplate(templateId);
+        return Result.success();
+    }
+
+    @GetMapping("/pageFavorite")
+    public Result<PageResult<UserFavoriteVO>> listFavoriteTemplate(PageRequest pageRequest) {
+
+        return Result.success(templatesService.listFavoriteTemplate(pageRequest));
+    }
+
+    @GetMapping("/checkFavoriteTemplate")
+    public Result<Boolean> isFavoriteTemplate(Long templateId) {
+        return Result.success(templatesService.isFavoriteTemplate(templateId));
     }
 }

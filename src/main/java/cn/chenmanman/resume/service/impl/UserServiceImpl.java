@@ -34,7 +34,6 @@ public class UserServiceImpl implements IUserService {
     public UserProfileVO updateProfile(UpdateUserProfileRequestPut request) {
         Long userId = StpUtil.getLoginIdAsLong();
         SysUserEntity currentUser = requireCurrentUser();
-        String uploadedAvatarUrl = null;
 
         SysUserEntity userUpdate = new SysUserEntity();
         userUpdate.setId(currentUser.getId());
@@ -43,20 +42,10 @@ public class UserServiceImpl implements IUserService {
         userUpdate.setPhoneNumber(request.getPhoneNumber());
         userUpdate.setEmploymentStatus(request.getEmploymentStatus());
         userUpdate.setUpdateBy(userId);
+        userUpdate.setAvatar(request.getAvatar());
 
-        MultipartFile avatarFile = request.getAvatarFile();
-        if (avatarFile != null) {
-            BizAssert.isFalse(avatarFile.isEmpty(), UserErrorCode.AVATAR_FILE_EMPTY);
-            uploadedAvatarUrl = localFileUploadUtil.uploadAvatar(avatarFile);
-            userUpdate.setAvatar(uploadedAvatarUrl);
-        }
+        sysUserMapper.updateById(userUpdate);
 
-        try {
-            sysUserMapper.updateById(userUpdate);
-        } catch (RuntimeException e) {
-            localFileUploadUtil.deleteByPublicUrl(uploadedAvatarUrl);
-            throw e;
-        }
         return buildUserProfileVO(requireCurrentUser());
     }
 

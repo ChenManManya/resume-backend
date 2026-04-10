@@ -19,4 +19,10 @@ public class UploadController {
         return Result.success(uploadService.uploadResumePhoto(file));
     }
 
+
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<String> uploadUserAvatar( @ModelAttribute MultipartFile file) {
+        return Result.success(uploadService.uploadUserAvatar(file));
+    }
+
 }
