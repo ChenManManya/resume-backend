@@ -43,9 +43,14 @@ public class ResumesEntity extends BaseEntity implements Serializable {
     private String status;
 
     /**
-     * 当前版本ID
+     * 简历内容JSON字符串
      */
-    private Long currentVersionId;
+    private String contentJson;
+
+    /**
+     * 布局配置JSON字符串
+     */
+    private String layoutJson;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

@@ -10,6 +10,7 @@ public enum UserErrorCode implements ErrorCode {
     CAPTCHA_WRONG(406, "验证码错误"),
     USERNAME_NOT_FOUND(407, "用户不存在"),
     PASSWORD_NOT_MATCHES(408, "密码不正确"),
+    EMAIL_BANDED(416, "邮箱已被其他用户绑定!"),
     USER_FORBIDDEN(409, "用户已被禁用"),
     USER_EXIST(410, "用户已存在"),
     CURRENT_USER_NOT_FOUND(411, "当前用户不存在"),

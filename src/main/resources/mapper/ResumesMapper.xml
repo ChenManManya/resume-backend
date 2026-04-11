@@ -10,7 +10,8 @@
             <result property="title" column="title" />
             <result property="templateId" column="template_id" />
             <result property="status" column="status" />
-            <result property="currentVersionId" column="current_version_id" />
+            <result property="contentJson" column="content_json" />
+            <result property="layoutJson" column="layout_json" />
             <result property="createBy" column="create_by" />
             <result property="updateBy" column="update_by" />
             <result property="createTime" column="create_time" />
@@ -19,7 +20,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,title,template_id,status,current_version_id,
+        id,user_id,title,template_id,status,content_json,layout_json,
         create_by,update_by,create_time,update_time,is_deleted
     </sql>
 </mapper>

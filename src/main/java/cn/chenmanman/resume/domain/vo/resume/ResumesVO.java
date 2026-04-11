@@ -7,8 +7,6 @@ import lombok.Data;
 @Builder
 public class ResumesVO {
     private Long resumeId;
-    private Long currentVersionId;
-    private Integer versionNo;
     private String title;
     private Long templateId;
     private String status;

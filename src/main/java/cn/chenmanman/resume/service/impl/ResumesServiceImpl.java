@@ -1,19 +1,15 @@
 package cn.chenmanman.resume.service.impl;
 
-import cn.chenmanman.resume.common.exception.BusinessException;
 import cn.chenmanman.resume.common.error.ResumesErrorCode;
-import cn.chenmanman.resume.domain.dto.resume.CreateResumeVersionsRequestPost;
+import cn.chenmanman.resume.common.exception.BusinessException;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
-import cn.chenmanman.resume.domain.entity.resume.ResumeVersionsEntity;
 import cn.chenmanman.resume.domain.entity.resume.ResumesEntity;
 import cn.chenmanman.resume.domain.entity.resume.TemplatesEntity;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
-import cn.chenmanman.resume.domain.vo.resume.ResumeVersionsVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
-import cn.chenmanman.resume.mapper.ResumeVersionsMapper;
 import cn.chenmanman.resume.mapper.ResumesMapper;
 import cn.chenmanman.resume.mapper.TemplatesMapper;
 import cn.chenmanman.resume.service.IResumesService;
@@ -28,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -36,7 +33,6 @@ import java.util.List;
 public class ResumesServiceImpl implements IResumesService {
 
     private final ResumesMapper resumesMapper;
-    private final ResumeVersionsMapper resumeVersionsMapper;
     private final TemplatesMapper templatesMapper;
     private final ObjectMapper objectMapper;
 
@@ -51,39 +47,21 @@ public class ResumesServiceImpl implements IResumesService {
                 .title(request.getTitle())
                 .templateId(template.getId())
                 .status("draft")
+                .contentJson(toJsonStorage(resolveInitialContent(template)))
+                .layoutJson(toJsonStorage(resolveInitialLayout(template)))
                 .createBy(userId)
                 .updateBy(userId)
                 .build();
         resumesMapper.insert(resume);
 
-        ResumeVersionsEntity version = ResumeVersionsEntity.builder()
-                .resumeId(resume.getId())
-                .title(request.getTitle())
-                .templateId(template.getId())
-                .versionNo(1)
-                .contentJson(toJsonStorage(template.getSchemaJson()))
-                .layoutJson(toJsonStorage(template.getStyleJson()))
-                .changeNote("初版")
-                .createBy(userId)
-                .updateBy(userId)
-                .build();
-        resumeVersionsMapper.insert(version);
-
-        ResumesEntity resumeUpdate = new ResumesEntity();
-        resumeUpdate.setId(resume.getId());
-        resumeUpdate.setCurrentVersionId(version.getId());
-        resumeUpdate.setUpdateBy(userId);
-        resumesMapper.updateById(resumeUpdate);
-
-        return buildResumeVO(requireOwnedResume(resume.getId(), userId), requireResumeVersion(resume.getId(), version.getId()));
+        return getResumeDetail(resume.getId());
     }
 
     @Override
     public ResumesVO getResumeDetail(Long resumeId) {
         Long userId = StpUtil.getLoginIdAsLong();
         ResumesEntity resume = requireOwnedResume(resumeId, userId);
-        ResumeVersionsEntity version = requireCurrentVersion(resume);
-        return buildResumeVO(resume, version);
+        return buildResumeVO(resume);
     }
 
     @Transactional
@@ -92,105 +70,29 @@ public class ResumesServiceImpl implements IResumesService {
         Long userId = StpUtil.getLoginIdAsLong();
         ResumesEntity resume = requireOwnedResume(resumeId, userId);
         TemplatesEntity template = requireActiveTemplate(request.getTemplateId());
-        ResumeVersionsEntity currentVersion = requireCurrentVersion(resume);
-
-        ResumeVersionsEntity versionUpdate = new ResumeVersionsEntity();
-        versionUpdate.setId(currentVersion.getId());
-        versionUpdate.setTitle(request.getTitle());
-        versionUpdate.setTemplateId(template.getId());
-        versionUpdate.setContentJson(toJsonStorage(request.getContentJson()));
-        versionUpdate.setLayoutJson(toJsonStorage(request.getLayoutJson()));
-        versionUpdate.setUpdateBy(userId);
-        resumeVersionsMapper.updateById(versionUpdate);
 
         ResumesEntity resumeUpdate = new ResumesEntity();
         resumeUpdate.setId(resume.getId());
         resumeUpdate.setTitle(request.getTitle());
         resumeUpdate.setTemplateId(template.getId());
         resumeUpdate.setStatus("draft");
+        resumeUpdate.setContentJson(toJsonStorage(request.getContentJson()));
+        resumeUpdate.setLayoutJson(toJsonStorage(request.getLayoutJson()));
         resumeUpdate.setUpdateBy(userId);
         resumesMapper.updateById(resumeUpdate);
 
         return getResumeDetail(resumeId);
     }
 
-    @Transactional
-    @Override
-    public ResumeVersionsVO createVersion(Long resumeId, CreateResumeVersionsRequestPost request) {
-        Long userId = StpUtil.getLoginIdAsLong();
-        ResumesEntity resume = requireOwnedResume(resumeId, userId);
-        TemplatesEntity template = requireActiveTemplate(request.getTemplateId());
-        ResumeVersionsEntity latestVersion = getLatestVersion(resumeId);
-        int nextVersionNo = latestVersion == null ? 1 : latestVersion.getVersionNo() + 1;
-
-        ResumeVersionsEntity version = ResumeVersionsEntity.builder()
-                .resumeId(resumeId)
-                .title(request.getTitle())
-                .templateId(template.getId())
-                .versionNo(nextVersionNo)
-                .contentJson(toJsonStorage(request.getContentJson()))
-                .layoutJson(toJsonStorage(request.getLayoutJson()))
-                .changeNote(request.getChangeNote())
-                .createBy(userId)
-                .updateBy(userId)
-                .build();
-        resumeVersionsMapper.insert(version);
-
-        ResumesEntity resumeUpdate = new ResumesEntity();
-        resumeUpdate.setId(resume.getId());
-        resumeUpdate.setTitle(request.getTitle());
-        resumeUpdate.setTemplateId(template.getId());
-        resumeUpdate.setCurrentVersionId(version.getId());
-        resumeUpdate.setStatus("draft");
-        resumeUpdate.setUpdateBy(userId);
-        resumesMapper.updateById(resumeUpdate);
-
-        return buildResumeVersionDetailVO(requireResumeVersion(resumeId, version.getId()));
-    }
-
-    @Override
-    public List<ResumeVersionsVO> listVersions(Long resumeId) {
-        Long userId = StpUtil.getLoginIdAsLong();
-        requireOwnedResume(resumeId, userId);
-
-        LambdaQueryWrapper<ResumeVersionsEntity> queryWrapper = new LambdaQueryWrapper<ResumeVersionsEntity>()
-                .eq(ResumeVersionsEntity::getResumeId, resumeId)
-                .eq(ResumeVersionsEntity::getIsDeleted, 0)
-                .orderByDesc(ResumeVersionsEntity::getVersionNo);
-
-        return resumeVersionsMapper.selectList(queryWrapper).stream()
-                .map(this::buildResumeVersionListVO)
-                .toList();
-    }
-
-    @Transactional
-    @Override
-    public ResumesVO switchCurrentVersion(Long resumeId, Long versionId) {
-        Long userId = StpUtil.getLoginIdAsLong();
-        ResumesEntity resume = requireOwnedResume(resumeId, userId);
-        ResumeVersionsEntity version = requireResumeVersion(resumeId, versionId);
-
-        ResumesEntity resumeUpdate = new ResumesEntity();
-        resumeUpdate.setId(resume.getId());
-        resumeUpdate.setTitle(version.getTitle());
-        resumeUpdate.setTemplateId(version.getTemplateId());
-        resumeUpdate.setCurrentVersionId(version.getId());
-        resumeUpdate.setStatus("draft");
-        resumeUpdate.setUpdateBy(userId);
-        resumesMapper.updateById(resumeUpdate);
-
-        return buildResumeVO(requireOwnedResume(resumeId, userId), version);
-    }
-
     @Override
     public void exportPdf(Long resumeId, ExportResumePdfRequestPost request) {
-        validateExportRequest(resumeId, request == null ? null : request.getVersionId());
+        validateExportAccess(resumeId);
         BizAssert.fail(ResumesErrorCode.RESUME_EXPORT_NOT_SUPPORTED);
     }
 
     @Override
     public void exportPng(Long resumeId, ExportResumePngRequestPost request) {
-        validateExportRequest(resumeId, request == null ? null : request.getVersionId());
+        validateExportAccess(resumeId);
         BizAssert.fail(ResumesErrorCode.RESUME_EXPORT_NOT_SUPPORTED);
     }
 
@@ -199,24 +101,22 @@ public class ResumesServiceImpl implements IResumesService {
         Long userId = StpUtil.getLoginIdAsLong();
 
         return resumesMapper.selectList(Wrappers.<ResumesEntity>lambdaQuery()
-                .eq(ResumesEntity::getUserId, userId))
+                        .eq(ResumesEntity::getUserId, userId)
+                        .eq(ResumesEntity::getIsDeleted, 0))
                 .stream()
-                .map(entity -> MyResumesVO.builder().
-                        id(entity.getId())
+                .map(entity -> MyResumesVO.builder()
+                        .id(entity.getId())
                         .title(entity.getTitle())
                         .templateId(entity.getTemplateId())
                         .updateTime(entity.getUpdateTime())
                         .status(entity.getStatus())
-                        .build()
-                )
+                        .build())
                 .toList();
     }
 
-    private void validateExportRequest(Long resumeId, Long versionId) {
+    private void validateExportAccess(Long resumeId) {
         Long userId = StpUtil.getLoginIdAsLong();
-        ResumesEntity resume = requireOwnedResume(resumeId, userId);
-        Long targetVersionId = versionId == null ? resume.getCurrentVersionId() : versionId;
-        requireResumeVersion(resumeId, targetVersionId);
+        requireOwnedResume(resumeId, userId);
     }
 
     private TemplatesEntity requireActiveTemplate(Long templateId) {
@@ -238,65 +138,37 @@ public class ResumesServiceImpl implements IResumesService {
         return resume;
     }
 
-    private ResumeVersionsEntity requireCurrentVersion(ResumesEntity resume) {
-        BizAssert.notNull(resume.getCurrentVersionId(), ResumesErrorCode.RESUME_CURRENT_VERSION_NOT_FOUND);
-        return requireResumeVersion(resume.getId(), resume.getCurrentVersionId());
-    }
-
-    private ResumeVersionsEntity requireResumeVersion(Long resumeId, Long versionId) {
-        BizAssert.notNull(versionId, ResumesErrorCode.RESUME_VERSION_NOT_FOUND);
-        LambdaQueryWrapper<ResumeVersionsEntity> queryWrapper = new LambdaQueryWrapper<ResumeVersionsEntity>()
-                .eq(ResumeVersionsEntity::getId, versionId)
-                .eq(ResumeVersionsEntity::getResumeId, resumeId)
-                .eq(ResumeVersionsEntity::getIsDeleted, 0)
-                .last("limit 1");
-        ResumeVersionsEntity version = resumeVersionsMapper.selectOne(queryWrapper);
-        BizAssert.notNull(version, ResumesErrorCode.RESUME_VERSION_NOT_FOUND);
-        return version;
-    }
-
-    private ResumeVersionsEntity getLatestVersion(Long resumeId) {
-        LambdaQueryWrapper<ResumeVersionsEntity> queryWrapper = new LambdaQueryWrapper<ResumeVersionsEntity>()
-                .eq(ResumeVersionsEntity::getResumeId, resumeId)
-                .eq(ResumeVersionsEntity::getIsDeleted, 0)
-                .orderByDesc(ResumeVersionsEntity::getVersionNo)
-                .last("limit 1");
-        return resumeVersionsMapper.selectOne(queryWrapper);
-    }
-
-    private ResumesVO buildResumeVO(ResumesEntity resume, ResumeVersionsEntity version) {
+    private ResumesVO buildResumeVO(ResumesEntity resume) {
         return ResumesVO.builder()
                 .resumeId(resume.getId())
-                .currentVersionId(version.getId())
-                .versionNo(version.getVersionNo())
-                .title(version.getTitle() == null ? resume.getTitle() : version.getTitle())
-                .templateId(version.getTemplateId() == null ? resume.getTemplateId() : version.getTemplateId())
+                .title(resume.getTitle())
+                .templateId(resume.getTemplateId())
                 .status(resume.getStatus())
-                .contentJson(fromJsonStorage(version.getContentJson()))
-                .layoutJson(fromJsonStorage(version.getLayoutJson()))
+                .contentJson(fromJsonStorage(resume.getContentJson()))
+                .layoutJson(fromJsonStorage(resume.getLayoutJson()))
                 .build();
     }
 
-    private ResumeVersionsVO buildResumeVersionDetailVO(ResumeVersionsEntity version) {
-        return ResumeVersionsVO.builder()
-                .versionId(version.getId())
-                .resumeId(version.getResumeId())
-                .versionNo(version.getVersionNo())
-                .changeNote(version.getChangeNote())
-                .contentJson(fromJsonStorage(version.getContentJson()))
-                .layoutJson(fromJsonStorage(version.getLayoutJson()))
-                .createTime(version.getCreateTime())
-                .build();
+    private Object resolveInitialContent(TemplatesEntity template) {
+        return resolveTemplateJson(template.getDefaultContentJson(), template.getSchemaJson());
     }
 
-    private ResumeVersionsVO buildResumeVersionListVO(ResumeVersionsEntity version) {
-        return ResumeVersionsVO.builder()
-                .versionId(version.getId())
-                .resumeId(version.getResumeId())
-                .versionNo(version.getVersionNo())
-                .changeNote(version.getChangeNote())
-                .createTime(version.getCreateTime())
-                .build();
+    private Object resolveInitialLayout(TemplatesEntity template) {
+        return resolveTemplateJson(template.getStyleJson(), template.getSchemaJson());
+    }
+
+    private Object resolveTemplateJson(Object preferredValue, Object fallbackValue) {
+        Object resolvedValue = fromJsonStorage(preferredValue);
+        if (resolvedValue != null) {
+            return resolvedValue;
+        }
+
+        resolvedValue = fromJsonStorage(fallbackValue);
+        if (resolvedValue != null) {
+            return resolvedValue;
+        }
+
+        return Collections.emptyMap();
     }
 
     private String toJsonStorage(Object value) {

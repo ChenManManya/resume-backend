@@ -39,18 +39,21 @@ public class AuthServiceImpl implements IAuthService {
 
         String redisKey = "manman_resume:login:captcha:" + request.getCaptchaKey();
         String cacheCode = redisUtil.get(redisKey);
-
         BizAssert.notNull(cacheCode, UserErrorCode.CAPTCHA_EXPIRE);
         BizAssert.isTrue(cacheCode.equalsIgnoreCase(request.getCaptchaCode()), UserErrorCode.CAPTCHA_WRONG);
 
         // 验证码校验成功, 删除验证码
         redisUtil.delete(redisKey);
 
+        // 校验账号
         SysUserEntity userDb = userMapper.selectOne(Wrappers.lambdaQuery(SysUserEntity.class)
                 .eq(SysUserEntity::getUsername, request.getUsername()));
 
         BizAssert.notNull(userDb, UserErrorCode.USERNAME_NOT_FOUND);
 
+
+
+        BizAssert.notNull(userDb, UserErrorCode.USERNAME_NOT_FOUND);
         // 校验密码
         BizAssert.isTrue(
                 passwordEncoder.matches(request.getPassword(), userDb.getPasswordHash()),
@@ -81,6 +84,11 @@ public class AuthServiceImpl implements IAuthService {
         SysUserEntity userDb = userMapper.selectOne(Wrappers.lambdaQuery(SysUserEntity.class)
                 .eq(SysUserEntity::getUsername, request.getUsername()));
         BizAssert.isNull(userDb, UserErrorCode.USER_EXIST);
+
+        // 校验邮箱
+        SysUserEntity emailDb = userMapper.selectOne(Wrappers.lambdaQuery(SysUserEntity.class)
+                .eq(SysUserEntity::getEmail, request.getEmail()));
+        BizAssert.isNull(emailDb, UserErrorCode.EMAIL_BANDED);
 
         String encodePassword = passwordEncoder.encode(request.getPassword());
 

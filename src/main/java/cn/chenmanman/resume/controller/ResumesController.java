@@ -1,22 +1,23 @@
 package cn.chenmanman.resume.controller;
 
 import cn.chenmanman.resume.common.Result;
-import cn.chenmanman.resume.domain.dto.resume.CreateResumeVersionsRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
-import cn.chenmanman.resume.domain.dto.user.UpdateUserProfileRequestPut;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
-import cn.chenmanman.resume.domain.vo.resume.ResumeVersionsVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
-import cn.chenmanman.resume.domain.vo.user.UserProfileVO;
 import cn.chenmanman.resume.service.IResumesService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -37,12 +38,8 @@ public class ResumesController {
     public Result<ResumesVO> getResumeDetail(@PathVariable Long resumeId) {
         return Result.success(resumesService.getResumeDetail(resumeId));
     }
-
-
     @GetMapping("/my")
     public Result<List<MyResumesVO>> listResumesMe() {
-
-
         return Result.success(resumesService.listResumesMe());
     }
 
@@ -50,22 +47,6 @@ public class ResumesController {
     public Result<ResumesVO> updateDraft(@PathVariable Long resumeId,
                                          @RequestBody @Valid UpdateResumesDraftRequestPut request) {
         return Result.success(resumesService.updateDraft(resumeId, request));
-    }
-
-    @PostMapping("/{resumeId}/versions")
-    public Result<ResumeVersionsVO> createVersion(@PathVariable Long resumeId,
-                                                  @RequestBody @Valid CreateResumeVersionsRequestPost request) {
-        return Result.success(resumesService.createVersion(resumeId, request));
-    }
-
-    @GetMapping("/{resumeId}/versions")
-    public Result<List<ResumeVersionsVO>> listVersions(@PathVariable Long resumeId) {
-        return Result.success(resumesService.listVersions(resumeId));
-    }
-
-    @PutMapping("/{resumeId}/current-version/{versionId}")
-    public Result<ResumesVO> switchCurrentVersion(@PathVariable Long resumeId, @PathVariable Long versionId) {
-        return Result.success(resumesService.switchCurrentVersion(resumeId, versionId));
     }
 
     @PostMapping("/{resumeId}/export/pdf")
@@ -81,8 +62,4 @@ public class ResumesController {
         resumesService.exportPng(resumeId, request);
         return Result.success();
     }
-
-
-
-
 }
