@@ -23,4 +23,6 @@ public interface ITemplatesService {
     void favoriteTemplate(Long templateId);
 
     Boolean isFavoriteTemplate(Long templateId);
+
+    List<String> getTemplateCategory();
 }

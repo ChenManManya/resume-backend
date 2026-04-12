@@ -47,6 +47,14 @@ public class TemplatesController {
     }
 
 
+    @GetMapping("/category")
+    public Result<List<String>> getTemplateCategory() {
+        return Result.success(templatesService.getTemplateCategory());
+    }
+
+
+
+
     @GetMapping("/favorite")
     public Result<String> favoriteTemplate(Long templateId) {
         templatesService.favoriteTemplate(templateId);

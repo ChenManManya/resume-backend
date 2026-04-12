@@ -13,7 +13,7 @@ import java.util.List;
 @SuperBuilder
 public class TemplateMatchPageRequest extends PageRequest {
 
-    private List<String> tags;
+    private String tag;
 
     private String category;
 }

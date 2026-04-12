@@ -134,6 +134,11 @@ public class TemplatesServiceImpl implements ITemplatesService {
     }
 
     @Override
+    public List<String> getTemplateCategory() {
+        return templatesMapper.selectTemplateCategory();
+    }
+
+    @Override
     public PageResult<TemplatesVO> pageTemplates(TemplateMatchPageRequest pageRequest) {
         TemplateMatchPageRequest currentPageRequest = pageRequest == null ? new TemplateMatchPageRequest() : pageRequest;
         int currentPageNum = currentPageRequest.getSafePageNum();
@@ -146,23 +151,10 @@ public class TemplatesServiceImpl implements ITemplatesService {
         if (StringUtils.hasText(currentPageRequest.getCategory())) {
             queryWrapper.eq(TemplatesEntity::getCategory, currentPageRequest.getCategory().trim());
         }
-        if (!CollectionUtils.isEmpty(currentPageRequest.getTags())) {
-            List<String> validTags = currentPageRequest.getTags().stream()
-                    .filter(StringUtils::hasText)
-                    .map(String::trim)
-                    .toList();
-            if (!validTags.isEmpty()) {
-                queryWrapper.and(wrapper -> {
-                    for (int i = 0; i < validTags.size(); i++) {
-                        String tag = validTags.get(i);
-                        if (i == 0) {
-                            wrapper.apply("JSON_CONTAINS(tags, JSON_ARRAY({0}))", tag);
-                        } else {
-                            wrapper.or().apply("JSON_CONTAINS(tags, JSON_ARRAY({0}))", tag);
-                        }
-                    }
-                });
-            }
+        if (StringUtils.hasText(pageRequest.getTag())) {
+            queryWrapper.and(wrapper -> {
+                wrapper.apply("JSON_CONTAINS(tags, JSON_QUOTE({0}))", pageRequest.getTag());
+            });
         }
 
         Page<TemplatesEntity> page = templatesMapper.selectPage(new Page<>(currentPageNum, currentPageSize), queryWrapper);

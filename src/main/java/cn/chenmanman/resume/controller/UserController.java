@@ -6,7 +6,6 @@ import cn.chenmanman.resume.domain.vo.user.UserProfileVO;
 import cn.chenmanman.resume.service.IUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor

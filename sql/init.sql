@@ -28,3 +28,29 @@ create index idx_resumes_update_by
     on resumes (update_by);
 create index idx_resumes_update_time
     on resumes (update_time);
+
+
+
+CREATE TABLE articles (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+      cover_url VARCHAR(512) DEFAULT NULL COMMENT '封面URL',
+      title VARCHAR(200) NOT NULL COMMENT '文章标题',
+      content LONGTEXT NOT NULL COMMENT '正文内容',
+      tags JSON NOT NULL COMMENT '标签(JSON数组)',
+      status TINYINT NOT NULL DEFAULT 0 COMMENT '状态：0草稿 1已发布 2已下架',
+      published_time DATETIME DEFAULT NULL COMMENT '发布时间',
+      create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+          ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+      create_by BIGINT UNSIGNED DEFAULT NULL COMMENT '创建人',
+      update_by BIGINT UNSIGNED DEFAULT NULL COMMENT '更新人',
+      deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除 0否 1是',
+      PRIMARY KEY (id),
+      INDEX idx_status (status),
+      INDEX idx_create_time (create_time),
+      INDEX idx_published_time (published_time),
+      INDEX idx_create_by (create_by)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+    COMMENT='文章表';

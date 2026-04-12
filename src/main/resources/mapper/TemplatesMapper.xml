@@ -28,4 +28,8 @@
         is_active,schema_json,style_json, default_content_json,tags,create_by,update_by,
         create_time,update_time,is_deleted
     </sql>
+
+    <select id="selectTemplateCategory" resultType="string">
+        select distinct category from templates where is_active = 1;
+    </select>
 </mapper>
