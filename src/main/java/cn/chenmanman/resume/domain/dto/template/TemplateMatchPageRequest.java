@@ -16,4 +16,6 @@ public class TemplateMatchPageRequest extends PageRequest {
     private String tag;
 
     private String category;
+
+    private String keyword;
 }

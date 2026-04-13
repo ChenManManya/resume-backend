@@ -1,5 +1,6 @@
 package cn.chenmanman.resume.utils;
 
+import cn.chenmanman.resume.common.error.ArticleErrorCode;
 import cn.chenmanman.resume.common.error.ResumesErrorCode;
 import cn.chenmanman.resume.common.error.UserErrorCode;
 import cn.chenmanman.resume.common.exception.BusinessException;
@@ -29,19 +30,21 @@ public class LocalFileUploadUtil {
 
     public String uploadAvatar(MultipartFile file) {
         validateAvatarFile(file);
-        return upload(file, localUploadProperties.getAvatarDir());
+        return upload(file, localUploadProperties.getAvatarDir(), UserErrorCode.AVATAR_UPLOAD_FAILED);
     }
 
 
     public String uploadPhoto(MultipartFile file) {
         validatePhotoFile(file);
-        return upload(file, localUploadProperties.getResumePhotoDir());
+        return upload(file, localUploadProperties.getResumePhotoDir(), ResumesErrorCode.PHOTO_UPLOAD_FAILED);
     }
 
-    public String upload(MultipartFile file, String subDirectory) {
-        BizAssert.notNull(file, UserErrorCode.AVATAR_FILE_EMPTY);
-        BizAssert.isFalse(file.isEmpty(), UserErrorCode.AVATAR_FILE_EMPTY);
+    public String uploadArticleCover(MultipartFile file) {
+        validateArticleCoverFile(file);
+        return upload(file, localUploadProperties.getArticleCoverDir(), ArticleErrorCode.ARTICLE_COVER_UPLOAD_FAILED);
+    }
 
+    public String upload(MultipartFile file, String subDirectory, cn.chenmanman.resume.common.error.ErrorCode errorCode) {
         String targetSubDirectory = normalizeSubDirectory(subDirectory);
         Path uploadDirectory = resolveUploadRoot().resolve(targetSubDirectory).normalize();
 
@@ -52,7 +55,7 @@ public class LocalFileUploadUtil {
             Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
             return buildPublicUrl(targetSubDirectory, storedFileName);
         } catch (IOException e) {
-            throw new BusinessException(UserErrorCode.AVATAR_UPLOAD_FAILED);
+            throw new BusinessException(errorCode);
         }
     }
 
@@ -114,7 +117,6 @@ public class LocalFileUploadUtil {
         BizAssert.isTrue(file.getSize() <= localUploadProperties.getMaxAvatarSizeBytes(), UserErrorCode.AVATAR_FILE_TOO_LARGE);
 
         String extension = extractExtension(file.getOriginalFilename());
-        String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
         BizAssert.isTrue(ALLOWED_IMAGE_EXTENSIONS.contains(extension), UserErrorCode.AVATAR_FILE_TYPE_INVALID);
     }
 
@@ -125,9 +127,17 @@ public class LocalFileUploadUtil {
         BizAssert.isTrue(file.getSize() <= localUploadProperties.getMaxPhotoSizeBytes(), ResumesErrorCode.PHOTO_FILE_TOO_LARGE);
 
         String extension = extractExtension(file.getOriginalFilename());
-        String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
         BizAssert.isTrue(ALLOWED_IMAGE_EXTENSIONS.contains(extension), ResumesErrorCode.PHOTO_FILE_TYPE_INVALID);
 
+    }
+
+    private void validateArticleCoverFile(MultipartFile file) {
+        BizAssert.notNull(file, ArticleErrorCode.ARTICLE_COVER_FILE_EMPTY);
+        BizAssert.isFalse(file.isEmpty(), ArticleErrorCode.ARTICLE_COVER_FILE_EMPTY);
+        BizAssert.isTrue(file.getSize() <= localUploadProperties.getMaxArticleCoverSizeBytes(), ArticleErrorCode.ARTICLE_COVER_FILE_TOO_LARGE);
+
+        String extension = extractExtension(file.getOriginalFilename());
+        BizAssert.isTrue(ALLOWED_IMAGE_EXTENSIONS.contains(extension), ArticleErrorCode.ARTICLE_COVER_FILE_TYPE_INVALID);
     }
 
     private String extractExtension(String originalFilename) {

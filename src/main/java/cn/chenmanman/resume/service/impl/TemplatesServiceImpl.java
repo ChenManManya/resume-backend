@@ -151,10 +151,16 @@ public class TemplatesServiceImpl implements ITemplatesService {
         if (StringUtils.hasText(currentPageRequest.getCategory())) {
             queryWrapper.eq(TemplatesEntity::getCategory, currentPageRequest.getCategory().trim());
         }
-        if (StringUtils.hasText(pageRequest.getTag())) {
+        if (StringUtils.hasText(currentPageRequest.getTag())) {
             queryWrapper.and(wrapper -> {
-                wrapper.apply("JSON_CONTAINS(tags, JSON_QUOTE({0}))", pageRequest.getTag());
+                wrapper.apply("JSON_CONTAINS(tags, JSON_QUOTE({0}))", currentPageRequest.getTag().trim());
             });
+        }
+        if (StringUtils.hasText(currentPageRequest.getKeyword())) {
+            String keyword = currentPageRequest.getKeyword().trim();
+            queryWrapper.and(wrapper -> wrapper.like(TemplatesEntity::getName, keyword)
+                    .or()
+                    .like(TemplatesEntity::getDescription, keyword));
         }
 
         Page<TemplatesEntity> page = templatesMapper.selectPage(new Page<>(currentPageNum, currentPageSize), queryWrapper);
