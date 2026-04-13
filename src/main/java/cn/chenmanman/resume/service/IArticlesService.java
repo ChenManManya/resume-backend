@@ -22,6 +22,8 @@ public interface IArticlesService {
 
     ArticleDetailVO getPublicArticleDetail(Long articleId);
 
+    List<ArticlePageVO> listPublicRecommendArticles(Long articleId, Integer limit);
+
     PageResult<ArticlePageVO> pageArticles(ArticlePageRequest request);
 
     PageResult<ArticlePageVO> pagePublicArticles(ArticlePageRequest request);

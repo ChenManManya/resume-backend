@@ -23,4 +23,17 @@
         id,user_id,title,template_id,status,content_json,layout_json,
         create_by,update_by,create_time,update_time,is_deleted
     </sql>
+
+    <select id="getResumeMeList" resultType="cn.chenmanman.resume.domain.vo.resume.MyResumesVO">
+        SELECT
+            r.id AS id,
+            r.title AS title,
+            r.update_time AS updateTime,
+            r.template_id AS templateId,
+            t.preview_image_url AS previewImageUrl
+        FROM resumes r
+                 INNER JOIN templates t ON r.template_id = t.id
+        WHERE r.user_id = #{userId}
+        ORDER BY r.update_time DESC
+    </select>
 </mapper>

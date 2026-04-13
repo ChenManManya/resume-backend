@@ -53,6 +53,7 @@ public class ResumesServiceImpl implements IResumesService {
                 .updateBy(userId)
                 .build();
         resumesMapper.insert(resume);
+        incrementTemplateUsage(template.getId());
 
         return getResumeDetail(resume.getId());
     }
@@ -70,6 +71,7 @@ public class ResumesServiceImpl implements IResumesService {
         Long userId = StpUtil.getLoginIdAsLong();
         ResumesEntity resume = requireOwnedResume(resumeId, userId);
         TemplatesEntity template = requireActiveTemplate(request.getTemplateId());
+        Long previousTemplateId = resume.getTemplateId();
 
         ResumesEntity resumeUpdate = new ResumesEntity();
         resumeUpdate.setId(resume.getId());
@@ -80,6 +82,10 @@ public class ResumesServiceImpl implements IResumesService {
         resumeUpdate.setLayoutJson(toJsonStorage(request.getLayoutJson()));
         resumeUpdate.setUpdateBy(userId);
         resumesMapper.updateById(resumeUpdate);
+
+        if (previousTemplateId == null || !previousTemplateId.equals(template.getId())) {
+            incrementTemplateUsage(template.getId());
+        }
 
         return getResumeDetail(resumeId);
     }
@@ -100,18 +106,7 @@ public class ResumesServiceImpl implements IResumesService {
     public List<MyResumesVO> listResumesMe() {
         Long userId = StpUtil.getLoginIdAsLong();
 
-        return resumesMapper.selectList(Wrappers.<ResumesEntity>lambdaQuery()
-                        .eq(ResumesEntity::getUserId, userId)
-                        .eq(ResumesEntity::getIsDeleted, 0))
-                .stream()
-                .map(entity -> MyResumesVO.builder()
-                        .id(entity.getId())
-                        .title(entity.getTitle())
-                        .templateId(entity.getTemplateId())
-                        .updateTime(entity.getUpdateTime())
-                        .status(entity.getStatus())
-                        .build())
-                .toList();
+        return resumesMapper.getResumeMeList(userId);
     }
 
     private void validateExportAccess(Long resumeId) {
@@ -125,6 +120,12 @@ public class ResumesServiceImpl implements IResumesService {
         BizAssert.equals(template.getIsDeleted(), 0, ResumesErrorCode.TEMPLATE_NOT_FOUND);
         BizAssert.equals(template.getIsActive(), 1, ResumesErrorCode.TEMPLATE_DISABLED);
         return template;
+    }
+
+    private void incrementTemplateUsage(Long templateId) {
+        templatesMapper.update(null, Wrappers.<TemplatesEntity>lambdaUpdate()
+                .eq(TemplatesEntity::getId, templateId)
+                .setSql("usage_number = IFNULL(usage_number, 0) + 1"));
     }
 
     private ResumesEntity requireOwnedResume(Long resumeId, Long userId) {

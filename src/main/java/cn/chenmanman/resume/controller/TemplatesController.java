@@ -36,6 +36,12 @@ public class TemplatesController {
         return Result.success(templatesService.getTemplateDetail(templateId));
     }
 
+    @GetMapping("/{templateId}/recommend")
+    public Result<List<TemplatesVO>> listRecommendTemplates(@PathVariable Long templateId,
+                                                            Integer limit) {
+        return Result.success(templatesService.listRecommendTemplates(templateId, limit));
+    }
+
     @GetMapping("/tag-groups")
     public Result<Map<String, List<String>>> getTemplateTagGroups() {
         return Result.success(templatesService.getTemplateTagGroups());

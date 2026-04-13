@@ -15,6 +15,7 @@ import cn.chenmanman.resume.utils.BizAssert;
 import cn.chenmanman.resume.utils.LocalFileUploadUtil;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -27,9 +28,12 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -112,7 +116,55 @@ public class ArticlesServiceImpl implements IArticlesService {
 
     @Override
     public ArticleDetailVO getPublicArticleDetail(Long articleId) {
-        return buildArticleDetailVO(requirePublishedArticle(articleId));
+        ArticlesEntity article = requirePublishedArticle(articleId);
+
+        articlesMapper.update(null, Wrappers.<ArticlesEntity>lambdaUpdate()
+                .eq(ArticlesEntity::getId, article.getId())
+                .setSql("view_num = IFNULL(view_num, 0) + 1"));
+
+        article.setViewNum((article.getViewNum() == null ? 0 : article.getViewNum()) + 1);
+        return buildArticleDetailVO(article);
+    }
+
+    @Override
+    public List<ArticlePageVO> listPublicRecommendArticles(Long articleId, Integer limit) {
+        ArticlesEntity sourceArticle = requirePublishedArticle(articleId);
+        int currentLimit = normalizeRecommendLimit(limit);
+
+        List<ArticlesEntity> candidates = articlesMapper.selectList(new LambdaQueryWrapper<ArticlesEntity>()
+                .eq(ArticlesEntity::getDeleted, 0)
+                .eq(ArticlesEntity::getStatus, 1)
+                .ne(ArticlesEntity::getId, articleId));
+
+        List<ArticlesEntity> recommendArticles = candidates.stream()
+                .map(article -> new ScoredArticle(article, scoreArticle(sourceArticle, article)))
+                .filter(scored -> scored.score() > 0)
+                .sorted(Comparator
+                        .comparingInt(ScoredArticle::score).reversed()
+                        .thenComparing(scored -> scored.article().getViewNum(), Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(scored -> scored.article().getPublishedTime(), Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(scored -> scored.article().getId(), Comparator.reverseOrder()))
+                .map(ScoredArticle::article)
+                .limit(currentLimit)
+                .toList();
+
+        if (recommendArticles.size() < currentLimit) {
+            Set<Long> existingIds = recommendArticles.stream().map(ArticlesEntity::getId).collect(java.util.stream.Collectors.toSet());
+            List<ArticlesEntity> hotFallback = candidates.stream()
+                    .filter(article -> !existingIds.contains(article.getId()))
+                    .sorted(Comparator
+                            .comparing(ArticlesEntity::getViewNum, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(ArticlesEntity::getPublishedTime, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(ArticlesEntity::getId, Comparator.reverseOrder()))
+                    .limit(currentLimit - recommendArticles.size())
+                    .toList();
+            recommendArticles = new java.util.ArrayList<>(recommendArticles);
+            recommendArticles.addAll(hotFallback);
+        }
+
+        return recommendArticles.stream()
+                .map(this::buildArticlePageVO)
+                .toList();
     }
 
     @Override
@@ -283,6 +335,65 @@ public class ArticlesServiceImpl implements IArticlesService {
                 .createTime(article.getCreateTime())
                 .updateTime(article.getUpdateTime())
                 .build();
+    }
+
+    private int scoreArticle(ArticlesEntity sourceArticle, ArticlesEntity candidate) {
+        int score = 0;
+        Set<String> sourceTags = new HashSet<>(fromJsonTags(sourceArticle.getTags()));
+        Set<String> candidateTags = new HashSet<>(fromJsonTags(candidate.getTags()));
+        for (String tag : sourceTags) {
+            if (candidateTags.contains(tag)) {
+                score += 10;
+            }
+        }
+
+        Set<String> keywords = extractKeywords(sourceArticle.getTitle(), sourceArticle.getContent());
+        String candidateText = (nullToEmpty(candidate.getTitle()) + " " + nullToEmpty(candidate.getContent())).toLowerCase();
+        for (String keyword : keywords) {
+            if (candidateText.contains(keyword)) {
+                score += 3;
+            }
+        }
+
+        Integer viewNum = candidate.getViewNum();
+        if (viewNum != null) {
+            score += Math.min(viewNum / 10, 20);
+        }
+        return score;
+    }
+
+    private Set<String> extractKeywords(String... texts) {
+        Set<String> keywords = new LinkedHashSet<>();
+        for (String text : texts) {
+            if (!StringUtils.hasText(text)) {
+                continue;
+            }
+            String[] parts = text.toLowerCase().split("[\\s,，。.!！？?、；;:：()（）【】\\[\\]{}《》\"'“”‘’/\\\\|+-]+");
+            for (String part : parts) {
+                String keyword = part.trim();
+                if (keyword.length() >= 2) {
+                    keywords.add(keyword);
+                }
+                if (keywords.size() >= 20) {
+                    return keywords;
+                }
+            }
+        }
+        return keywords;
+    }
+
+    private int normalizeRecommendLimit(Integer limit) {
+        if (limit == null || limit < 1) {
+            return 6;
+        }
+        return Math.min(limit, 20);
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private record ScoredArticle(ArticlesEntity article, int score) {
     }
 
     private void validateArticleRequest(String title, String content, List<String> tags, Integer status) {

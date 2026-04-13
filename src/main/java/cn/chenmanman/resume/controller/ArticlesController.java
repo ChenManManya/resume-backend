@@ -61,6 +61,12 @@ public class ArticlesController {
         return Result.success(articlesService.getPublicArticleDetail(articleId));
     }
 
+    @GetMapping("/public/{articleId}/recommend")
+    public Result<List<ArticlePageVO>> listPublicRecommendArticles(@PathVariable Long articleId,
+                                                                   @RequestParam(required = false) Integer limit) {
+        return Result.success(articlesService.listPublicRecommendArticles(articleId, limit));
+    }
+
     @GetMapping("/page")
     public Result<PageResult<ArticlePageVO>> pageArticles(@ModelAttribute ArticlePageRequest request) {
         return Result.success(articlesService.pageArticles(request));

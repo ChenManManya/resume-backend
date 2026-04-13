@@ -14,6 +14,8 @@ public interface ITemplatesService {
 
     TemplatesVO getTemplateDetail(Long templateId);
 
+    List<TemplatesVO> listRecommendTemplates(Long templateId, Integer limit);
+
     PageResult<TemplatesVO> pageTemplates(TemplateMatchPageRequest pageRequest);
 
     Map<String, List<String>> getTemplateTagGroups();

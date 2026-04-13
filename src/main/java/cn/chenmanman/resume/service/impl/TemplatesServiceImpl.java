@@ -57,6 +57,44 @@ public class TemplatesServiceImpl implements ITemplatesService {
     }
 
     @Override
+    public List<TemplatesVO> listRecommendTemplates(Long templateId, Integer limit) {
+        TemplatesEntity sourceTemplate = requireActiveTemplate(templateId);
+        int currentLimit = normalizeRecommendLimit(limit);
+
+        List<TemplatesEntity> candidates = templatesMapper.selectList(Wrappers.<TemplatesEntity>lambdaQuery()
+                .eq(TemplatesEntity::getIsActive, 1)
+                .ne(TemplatesEntity::getId, templateId));
+
+        List<TemplatesEntity> recommendTemplates = candidates.stream()
+                .map(template -> new ScoredTemplate(template, scoreTemplate(sourceTemplate, template)))
+                .filter(scored -> scored.score() > 0)
+                .sorted(Comparator
+                        .comparingInt(ScoredTemplate::score).reversed()
+                        .thenComparing(scored -> scored.template().getUsageNumber(), Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(scored -> scored.template().getId(), Comparator.reverseOrder()))
+                .map(ScoredTemplate::template)
+                .limit(currentLimit)
+                .toList();
+
+        if (recommendTemplates.size() < currentLimit) {
+            Set<Long> existingIds = recommendTemplates.stream().map(TemplatesEntity::getId).collect(Collectors.toSet());
+            List<TemplatesEntity> hotFallback = candidates.stream()
+                    .filter(template -> !existingIds.contains(template.getId()))
+                    .sorted(Comparator
+                            .comparing(TemplatesEntity::getUsageNumber, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(TemplatesEntity::getId, Comparator.reverseOrder()))
+                    .limit(currentLimit - recommendTemplates.size())
+                    .toList();
+            recommendTemplates = new ArrayList<>(recommendTemplates);
+            recommendTemplates.addAll(hotFallback);
+        }
+
+        return recommendTemplates.stream()
+                .map(this::buildTemplateListVO)
+                .toList();
+    }
+
+    @Override
     public Map<String, List<String>> getTemplateTagGroups() {
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, LinkedHashSet<String>> tempMap = new LinkedHashMap<>();
@@ -211,6 +249,81 @@ public class TemplatesServiceImpl implements ITemplatesService {
                 .styleJson(fromJsonStorage(template.getStyleJson()))
                 .defaultContentJson(template.getDefaultContentJson())
                 .build();
+    }
+
+    private int scoreTemplate(TemplatesEntity sourceTemplate, TemplatesEntity candidate) {
+        int score = 0;
+        if (Objects.equals(sourceTemplate.getCategory(), candidate.getCategory())) {
+            score += 8;
+        }
+
+        Set<String> sourceTags = toStringSet(fromJsonStorage(sourceTemplate.getTags()));
+        Set<String> candidateTags = toStringSet(fromJsonStorage(candidate.getTags()));
+        for (String tag : sourceTags) {
+            if (candidateTags.contains(tag)) {
+                score += 10;
+            }
+        }
+
+        Set<String> keywords = extractKeywords(sourceTemplate.getName(), sourceTemplate.getDescription());
+        String candidateText = (nullToEmpty(candidate.getName()) + " " + nullToEmpty(candidate.getDescription())).toLowerCase();
+        for (String keyword : keywords) {
+            if (candidateText.contains(keyword)) {
+                score += 3;
+            }
+        }
+
+        Integer usageNumber = candidate.getUsageNumber();
+        if (usageNumber != null) {
+            score += Math.min(usageNumber / 10, 20);
+        }
+        return score;
+    }
+
+    private Set<String> toStringSet(Object value) {
+        if (value instanceof Collection<?> collection) {
+            return collection.stream()
+                    .filter(Objects::nonNull)
+                    .map(String::valueOf)
+                    .map(String::trim)
+                    .filter(StringUtils::hasText)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+        return new LinkedHashSet<>();
+    }
+
+    private Set<String> extractKeywords(String... texts) {
+        Set<String> keywords = new LinkedHashSet<>();
+        for (String text : texts) {
+            if (!StringUtils.hasText(text)) {
+                continue;
+            }
+            String[] parts = text.toLowerCase().split("[\\s,，。.!！？?、；;:：()（）【】\\[\\]{}《》\"'“”‘’/\\\\|+-]+");
+            for (String part : parts) {
+                String keyword = part.trim();
+                if (keyword.length() >= 2) {
+                    keywords.add(keyword);
+                }
+                if (keywords.size() >= 20) {
+                    return keywords;
+                }
+            }
+        }
+        return keywords;
+    }
+
+    private int normalizeRecommendLimit(Integer limit) {
+        if (limit == null || limit < 1) {
+            return 6;
+        }
+        return Math.min(limit, 20);
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private record ScoredTemplate(TemplatesEntity template, int score) {
     }
 
     private Object fromJsonStorage(Object value) {
