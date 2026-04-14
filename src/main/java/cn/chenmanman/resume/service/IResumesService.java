@@ -7,6 +7,7 @@ import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
+import cn.chenmanman.resume.domain.vo.resume.ResumePdfVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
 
 import java.util.List;
@@ -18,7 +19,7 @@ public interface IResumesService {
 
     ResumesVO updateDraft(Long resumeId, UpdateResumesDraftRequestPut request);
 
-    void exportPdf(Long resumeId, ExportResumePdfRequestPost request);
+    ResumePdfVO exportPdf(Long resumeId);
 
     void exportPng(Long resumeId, ExportResumePngRequestPost request);
 
@@ -26,4 +27,5 @@ public interface IResumesService {
 
     PageResult<MyResumesVO> pageResumesMe(PageRequest pageRequest);
 
+    public ResumesVO getResumeDetailNoLogin(Long resumeId);
 }

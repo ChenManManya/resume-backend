@@ -8,11 +8,17 @@ import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
+import cn.chenmanman.resume.domain.vo.resume.ResumePdfVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
 import cn.chenmanman.resume.service.IResumesService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,6 +47,11 @@ public class ResumesController {
     public Result<ResumesVO> getResumeDetail(@PathVariable Long resumeId) {
         return Result.success(resumesService.getResumeDetail(resumeId));
     }
+
+    @GetMapping("/pp/{resumeId}")
+    public Result<ResumesVO> getResumeDetailPdf(@PathVariable Long resumeId) {
+        return Result.success(resumesService.getResumeDetailNoLogin(resumeId));
+    }
     @GetMapping("/my")
     public Result<List<MyResumesVO>> listResumesMe() {
         return Result.success(resumesService.listResumesMe());
@@ -57,11 +68,18 @@ public class ResumesController {
         return Result.success(resumesService.updateDraft(resumeId, request));
     }
 
+    @Async
     @PostMapping("/{resumeId}/export/pdf")
-    public Result<Void> exportPdf(@PathVariable Long resumeId,
-                                  @RequestBody(required = false) @Valid ExportResumePdfRequestPost request) {
-        resumesService.exportPdf(resumeId, request);
-        return Result.success();
+    public ResponseEntity<byte[]> exportPdf(@PathVariable Long resumeId) {
+        ResumePdfVO pdf = resumesService.exportPdf(resumeId);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(
+                ContentDisposition.attachment().filename(pdf.getResumeName()).build()
+        );
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdf.getResume());
     }
 
     @PostMapping("/{resumeId}/export/png")

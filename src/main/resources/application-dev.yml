@@ -18,3 +18,11 @@ spring:
 server:
   servlet:
     context-path: /dev-api
+resume:
+  selenium:
+    driver-path: D:/driver/chromedriver-win64/chromedriver.exe
+    arguments:
+      - --headless=new
+      - --disable-gpu
+      - --window-size=1280,2000
+    url: http://localhost:3000
