@@ -3,6 +3,7 @@ package cn.chenmanman.resume.mapper;
 import cn.chenmanman.resume.domain.entity.resume.ResumesEntity;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -16,6 +17,8 @@ import java.util.List;
 public interface ResumesMapper extends BaseMapper<ResumesEntity> {
 
     List<MyResumesVO> getResumeMeList(@Param("userId") Long userId);
+
+    Page<MyResumesVO> getResumeMePage(Page<?> page, @Param("userId") Long userId);
 }
 
 

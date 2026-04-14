@@ -2,18 +2,22 @@ package cn.chenmanman.resume.service.impl;
 
 import cn.chenmanman.resume.common.PageRequest;
 import cn.chenmanman.resume.common.PageResult;
+import cn.chenmanman.resume.domain.dto.template.GuestTemplateRecommendRequest;
 import cn.chenmanman.resume.common.error.ResumesErrorCode;
 import cn.chenmanman.resume.domain.dto.template.TemplateMatchPageRequest;
+import cn.chenmanman.resume.domain.entity.resume.ResumesEntity;
 import cn.chenmanman.resume.domain.entity.resume.TemplatesEntity;
 import cn.chenmanman.resume.domain.entity.resume.UserTemplateFavoriteEntity;
+import cn.chenmanman.resume.domain.entity.user.SysUserEntity;
 import cn.chenmanman.resume.domain.vo.resume.TemplatesVO;
 import cn.chenmanman.resume.domain.vo.resume.UserFavoriteVO;
 import cn.chenmanman.resume.mapper.TemplatesMapper;
+import cn.chenmanman.resume.mapper.ResumesMapper;
+import cn.chenmanman.resume.mapper.SysUserMapper;
 import cn.chenmanman.resume.mapper.UserTemplateFavoriteMapper;
 import cn.chenmanman.resume.service.ITemplatesService;
 import cn.chenmanman.resume.utils.BizAssert;
 import cn.dev33.satoken.stp.StpUtil;
-import cn.hutool.json.JSONArray;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -37,6 +41,8 @@ public class TemplatesServiceImpl implements ITemplatesService {
     private final TemplatesMapper templatesMapper;
     private final ObjectMapper objectMapper;
     private final UserTemplateFavoriteMapper userTemplateFavoriteMapper;
+    private final ResumesMapper resumesMapper;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public List<TemplatesVO> listTemplates() {
@@ -92,6 +98,155 @@ public class TemplatesServiceImpl implements ITemplatesService {
         return recommendTemplates.stream()
                 .map(this::buildTemplateListVO)
                 .toList();
+    }
+
+    @Override
+    public List<TemplatesVO> listRecommendTemplatesForCurrentUser(Integer limit) {
+        long userId = StpUtil.getLoginIdAsLong();
+        int currentLimit = normalizeRecommendLimit(limit);
+        SysUserEntity currentUser = sysUserMapper.selectById(userId);
+
+        List<UserTemplateFavoriteEntity> favorites = userTemplateFavoriteMapper.selectList(Wrappers.<UserTemplateFavoriteEntity>lambdaQuery()
+                .eq(UserTemplateFavoriteEntity::getUserId, userId)
+                .eq(UserTemplateFavoriteEntity::getIsDeleted, 0));
+        List<ResumesEntity> resumes = resumesMapper.selectList(Wrappers.<ResumesEntity>lambdaQuery()
+                .select(ResumesEntity::getTemplateId)
+                .eq(ResumesEntity::getUserId, userId)
+                .eq(ResumesEntity::getIsDeleted, 0));
+
+        Map<Long, Integer> templateWeights = new HashMap<>();
+        Set<Long> interactedTemplateIds = new LinkedHashSet<>();
+
+        for (UserTemplateFavoriteEntity favorite : favorites) {
+            if (favorite.getTemplateId() == null) {
+                continue;
+            }
+            interactedTemplateIds.add(favorite.getTemplateId());
+            templateWeights.merge(favorite.getTemplateId(), 5, Integer::sum);
+        }
+        for (ResumesEntity resume : resumes) {
+            if (resume.getTemplateId() == null) {
+                continue;
+            }
+            interactedTemplateIds.add(resume.getTemplateId());
+            templateWeights.merge(resume.getTemplateId(), 3, Integer::sum);
+        }
+
+        List<TemplatesEntity> interactedTemplates = interactedTemplateIds.isEmpty()
+                ? List.of()
+                : templatesMapper.selectBatchIds(interactedTemplateIds).stream()
+                .filter(template -> template.getIsDeleted() != null && template.getIsDeleted() == 0)
+                .filter(template -> template.getIsActive() != null && template.getIsActive() == 1)
+                .toList();
+
+        Map<String, Integer> categoryWeights = new HashMap<>();
+        Map<String, Integer> tagWeights = new HashMap<>();
+        Set<String> keywordSet = new LinkedHashSet<>();
+
+        for (TemplatesEntity template : interactedTemplates) {
+            int baseWeight = templateWeights.getOrDefault(template.getId(), 1);
+            if (StringUtils.hasText(template.getCategory())) {
+                categoryWeights.merge(template.getCategory().trim(), baseWeight * 4, Integer::sum);
+            }
+            for (String tag : toStringSet(fromJsonStorage(template.getTags()))) {
+                tagWeights.merge(tag, baseWeight * 5, Integer::sum);
+            }
+            keywordSet.addAll(extractKeywords(template.getName(), template.getDescription()));
+        }
+
+        if (interactedTemplates.isEmpty()) {
+            applyColdStartPreference(currentUser == null ? null : currentUser.getEmploymentStatus(), categoryWeights, tagWeights, keywordSet);
+        }
+
+        List<TemplatesEntity> candidates = templatesMapper.selectList(Wrappers.<TemplatesEntity>lambdaQuery()
+                .eq(TemplatesEntity::getIsDeleted, 0)
+                .eq(TemplatesEntity::getIsActive, 1));
+
+        List<TemplatesEntity> recommendTemplates = candidates.stream()
+                .filter(template -> !interactedTemplateIds.contains(template.getId()))
+                .map(template -> new ScoredTemplate(template, scoreTemplateForUser(template, categoryWeights, tagWeights, keywordSet)))
+                .filter(scored -> scored.score() > 0)
+                .sorted(Comparator
+                        .comparingInt(ScoredTemplate::score).reversed()
+                        .thenComparing(scored -> scored.template().getUsageNumber(), Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(scored -> scored.template().getId(), Comparator.reverseOrder()))
+                .map(ScoredTemplate::template)
+                .limit(currentLimit)
+                .toList();
+
+        if (recommendTemplates.size() < currentLimit) {
+            Set<Long> existingIds = recommendTemplates.stream().map(TemplatesEntity::getId).collect(Collectors.toSet());
+            List<TemplatesEntity> hotFallback = candidates.stream()
+                    .filter(template -> !existingIds.contains(template.getId()))
+                    .filter(template -> !interactedTemplateIds.contains(template.getId()))
+                    .sorted(Comparator
+                            .comparing(TemplatesEntity::getUsageNumber, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(TemplatesEntity::getId, Comparator.reverseOrder()))
+                    .limit(currentLimit - recommendTemplates.size())
+                    .toList();
+            recommendTemplates = new ArrayList<>(recommendTemplates);
+            recommendTemplates.addAll(hotFallback);
+        }
+
+        return recommendTemplates.stream().map(this::buildTemplateListVO).toList();
+    }
+
+    @Override
+    public List<TemplatesVO> listGuestRecommendTemplates(GuestTemplateRecommendRequest request) {
+        GuestTemplateRecommendRequest currentRequest = request == null ? new GuestTemplateRecommendRequest() : request;
+        int currentLimit = currentRequest.getSafePageSize();
+        boolean hasExplicitIntent = StringUtils.hasText(currentRequest.getCategory())
+                || StringUtils.hasText(currentRequest.getTag())
+                || StringUtils.hasText(currentRequest.getKeyword());
+
+        Map<String, Integer> categoryWeights = new HashMap<>();
+        Map<String, Integer> tagWeights = new HashMap<>();
+        Set<String> keywordSet = new LinkedHashSet<>();
+
+        if (StringUtils.hasText(currentRequest.getCategory())) {
+            categoryWeights.merge(currentRequest.getCategory().trim(), 10, Integer::sum);
+        }
+        if (StringUtils.hasText(currentRequest.getTag())) {
+            tagWeights.merge(currentRequest.getTag().trim(), 12, Integer::sum);
+        }
+        if (StringUtils.hasText(currentRequest.getKeyword())) {
+            keywordSet.addAll(extractKeywords(currentRequest.getKeyword()));
+        }
+        if (currentRequest.getEmploymentStatus() != null || !hasExplicitIntent) {
+            applyColdStartPreference(currentRequest.getEmploymentStatus(), categoryWeights, tagWeights, keywordSet);
+        }
+
+        List<TemplatesEntity> candidates = templatesMapper.selectList(Wrappers.<TemplatesEntity>lambdaQuery()
+                .eq(TemplatesEntity::getIsDeleted, 0)
+                .eq(TemplatesEntity::getIsActive, 1));
+
+        boolean hasRecommendIntent = !categoryWeights.isEmpty() || !tagWeights.isEmpty() || !keywordSet.isEmpty();
+
+        List<TemplatesEntity> recommendTemplates = candidates.stream()
+                .map(template -> new ScoredTemplate(template, scoreTemplateForUser(template, categoryWeights, tagWeights, keywordSet)))
+                .filter(scored -> hasRecommendIntent ? scored.score() > 0 : true)
+                .sorted(Comparator
+                        .comparingInt(ScoredTemplate::score).reversed()
+                        .thenComparing(scored -> scored.template().getUsageNumber(), Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(scored -> scored.template().getId(), Comparator.reverseOrder()))
+                .map(ScoredTemplate::template)
+                .limit(currentLimit)
+                .toList();
+
+        if (recommendTemplates.size() < currentLimit) {
+            Set<Long> existingIds = recommendTemplates.stream().map(TemplatesEntity::getId).collect(Collectors.toSet());
+            List<TemplatesEntity> hotFallback = candidates.stream()
+                    .filter(template -> !existingIds.contains(template.getId()))
+                    .sorted(Comparator
+                            .comparing(TemplatesEntity::getUsageNumber, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(TemplatesEntity::getId, Comparator.reverseOrder()))
+                    .limit(currentLimit - recommendTemplates.size())
+                    .toList();
+            recommendTemplates = new ArrayList<>(recommendTemplates);
+            recommendTemplates.addAll(hotFallback);
+        }
+
+        return recommendTemplates.stream().map(this::buildTemplateListVO).toList();
     }
 
     @Override
@@ -278,6 +433,82 @@ public class TemplatesServiceImpl implements ITemplatesService {
             score += Math.min(usageNumber / 10, 20);
         }
         return score;
+    }
+
+    private int scoreTemplateForUser(TemplatesEntity candidate,
+                                     Map<String, Integer> categoryWeights,
+                                     Map<String, Integer> tagWeights,
+                                     Set<String> keywordSet) {
+        int score = 0;
+
+        if (StringUtils.hasText(candidate.getCategory())) {
+            score += categoryWeights.getOrDefault(candidate.getCategory().trim(), 0);
+        }
+
+        for (String tag : toStringSet(fromJsonStorage(candidate.getTags()))) {
+            score += tagWeights.getOrDefault(tag, 0);
+        }
+
+        String candidateText = (nullToEmpty(candidate.getName()) + " " + nullToEmpty(candidate.getDescription())).toLowerCase();
+        for (String keyword : keywordSet) {
+            if (candidateText.contains(keyword)) {
+                score += 2;
+            }
+        }
+
+        Integer usageNumber = candidate.getUsageNumber();
+        if (usageNumber != null) {
+            score += Math.min(usageNumber / 10, 20);
+        }
+
+        return score;
+    }
+
+    private void applyColdStartPreference(Integer employmentStatus,
+                                          Map<String, Integer> categoryWeights,
+                                          Map<String, Integer> tagWeights,
+                                          Set<String> keywordSet) {
+        if (employmentStatus == null) {
+            tagWeights.merge("校招", 6, Integer::sum);
+            tagWeights.merge("实习", 4, Integer::sum);
+            keywordSet.add("校招");
+            keywordSet.add("实习");
+            return;
+        }
+
+        switch (employmentStatus) {
+            case 0 -> {
+                tagWeights.merge("社招", 8, Integer::sum);
+                categoryWeights.merge("通用", 3, Integer::sum);
+                keywordSet.add("社招");
+            }
+            case 1 -> {
+                tagWeights.merge("校招", 8, Integer::sum);
+                tagWeights.merge("应届", 4, Integer::sum);
+                categoryWeights.merge("通用", 3, Integer::sum);
+                keywordSet.add("校招");
+                keywordSet.add("应届");
+            }
+            case 2 -> {
+                tagWeights.merge("实习", 8, Integer::sum);
+                tagWeights.merge("校招", 4, Integer::sum);
+                categoryWeights.merge("通用", 3, Integer::sum);
+                keywordSet.add("实习");
+                keywordSet.add("校招");
+            }
+            case 3 -> {
+                tagWeights.merge("通用", 4, Integer::sum);
+                tagWeights.merge("校招", 3, Integer::sum);
+                tagWeights.merge("社招", 3, Integer::sum);
+                categoryWeights.merge("通用", 4, Integer::sum);
+                keywordSet.add("通用");
+            }
+            default -> {
+                tagWeights.merge("通用", 4, Integer::sum);
+                categoryWeights.merge("通用", 3, Integer::sum);
+                keywordSet.add("通用");
+            }
+        }
     }
 
     private Set<String> toStringSet(Object value) {

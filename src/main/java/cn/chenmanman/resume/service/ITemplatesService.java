@@ -2,6 +2,7 @@ package cn.chenmanman.resume.service;
 
 import cn.chenmanman.resume.common.PageRequest;
 import cn.chenmanman.resume.common.PageResult;
+import cn.chenmanman.resume.domain.dto.template.GuestTemplateRecommendRequest;
 import cn.chenmanman.resume.domain.dto.template.TemplateMatchPageRequest;
 import cn.chenmanman.resume.domain.vo.resume.TemplatesVO;
 import cn.chenmanman.resume.domain.vo.resume.UserFavoriteVO;
@@ -15,6 +16,10 @@ public interface ITemplatesService {
     TemplatesVO getTemplateDetail(Long templateId);
 
     List<TemplatesVO> listRecommendTemplates(Long templateId, Integer limit);
+
+    List<TemplatesVO> listRecommendTemplatesForCurrentUser(Integer limit);
+
+    List<TemplatesVO> listGuestRecommendTemplates(GuestTemplateRecommendRequest request);
 
     PageResult<TemplatesVO> pageTemplates(TemplateMatchPageRequest pageRequest);
 

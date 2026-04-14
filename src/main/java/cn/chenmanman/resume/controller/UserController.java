@@ -1,12 +1,15 @@
 package cn.chenmanman.resume.controller;
 
 import cn.chenmanman.resume.common.Result;
+import cn.chenmanman.resume.domain.vo.resume.TemplatesVO;
 import cn.chenmanman.resume.domain.dto.user.UpdateUserProfileRequestPut;
 import cn.chenmanman.resume.domain.vo.user.UserProfileVO;
 import cn.chenmanman.resume.service.IUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -23,5 +26,10 @@ public class UserController {
     @PutMapping(value = "/profile")
     public Result<UserProfileVO> updateProfile(@Valid @RequestBody UpdateUserProfileRequestPut request) {
         return Result.success(userService.updateProfile(request));
+    }
+
+    @GetMapping("/templates/recommend")
+    public Result<List<TemplatesVO>> listRecommendTemplates(Integer limit) {
+        return Result.success(userService.listRecommendTemplates(limit));
     }
 }

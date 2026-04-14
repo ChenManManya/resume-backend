@@ -3,6 +3,7 @@ package cn.chenmanman.resume.controller;
 import cn.chenmanman.resume.common.PageRequest;
 import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.Result;
+import cn.chenmanman.resume.domain.dto.template.GuestTemplateRecommendRequest;
 import cn.chenmanman.resume.domain.dto.template.TemplateMatchPageRequest;
 import cn.chenmanman.resume.domain.vo.resume.TemplatesVO;
 import cn.chenmanman.resume.domain.vo.resume.UserFavoriteVO;
@@ -40,6 +41,11 @@ public class TemplatesController {
     public Result<List<TemplatesVO>> listRecommendTemplates(@PathVariable Long templateId,
                                                             Integer limit) {
         return Result.success(templatesService.listRecommendTemplates(templateId, limit));
+    }
+
+    @GetMapping("/public/recommend")
+    public Result<List<TemplatesVO>> listGuestRecommendTemplates(@ModelAttribute GuestTemplateRecommendRequest request) {
+        return Result.success(templatesService.listGuestRecommendTemplates(request));
     }
 
     @GetMapping("/tag-groups")

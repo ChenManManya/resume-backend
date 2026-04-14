@@ -2,10 +2,12 @@ package cn.chenmanman.resume.service.impl;
 
 import cn.chenmanman.resume.common.error.UserErrorCode;
 import cn.chenmanman.resume.domain.dto.user.UpdateUserProfileRequestPut;
+import cn.chenmanman.resume.domain.vo.resume.TemplatesVO;
 import cn.chenmanman.resume.domain.entity.user.SysUserEntity;
 import cn.chenmanman.resume.domain.vo.user.UserProfileVO;
 import cn.chenmanman.resume.mapper.SysUserMapper;
 import cn.chenmanman.resume.service.IUserService;
+import cn.chenmanman.resume.service.ITemplatesService;
 import cn.chenmanman.resume.utils.BizAssert;
 import cn.chenmanman.resume.utils.LocalFileUploadUtil;
 import cn.dev33.satoken.stp.StpUtil;
@@ -14,7 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class UserServiceImpl implements IUserService {
 
     private final SysUserMapper sysUserMapper;
     private final LocalFileUploadUtil localFileUploadUtil;
+    private final ITemplatesService templatesService;
 
     @Override
     public UserProfileVO getProfile() {
@@ -47,6 +51,12 @@ public class UserServiceImpl implements IUserService {
         sysUserMapper.updateById(userUpdate);
 
         return buildUserProfileVO(requireCurrentUser());
+    }
+
+    @Override
+    public List<TemplatesVO> listRecommendTemplates(Integer limit) {
+        requireCurrentUser();
+        return templatesService.listRecommendTemplatesForCurrentUser(limit);
     }
 
     private SysUserEntity requireCurrentUser() {

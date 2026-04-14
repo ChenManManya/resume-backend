@@ -1,5 +1,7 @@
 package cn.chenmanman.resume.service.impl;
 
+import cn.chenmanman.resume.common.PageRequest;
+import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.error.ResumesErrorCode;
 import cn.chenmanman.resume.common.exception.BusinessException;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
@@ -17,6 +19,7 @@ import cn.chenmanman.resume.utils.BizAssert;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -107,6 +110,22 @@ public class ResumesServiceImpl implements IResumesService {
         Long userId = StpUtil.getLoginIdAsLong();
 
         return resumesMapper.getResumeMeList(userId);
+    }
+
+    @Override
+    public PageResult<MyResumesVO> pageResumesMe(PageRequest pageRequest) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        PageRequest currentPageRequest = pageRequest == null ? new PageRequest() : pageRequest;
+        int currentPageNum = currentPageRequest.getSafePageNum();
+        int currentPageSize = currentPageRequest.getSafePageSize();
+
+        Page<MyResumesVO> page = resumesMapper.getResumeMePage(new Page<>(currentPageNum, currentPageSize), userId);
+        PageResult<MyResumesVO> pageResult = new PageResult<>();
+        pageResult.setTotal(page.getTotal());
+        pageResult.setPageNum(currentPageNum);
+        pageResult.setPageSize(currentPageSize);
+        pageResult.setList(page.getRecords());
+        return pageResult;
     }
 
     private void validateExportAccess(Long resumeId) {

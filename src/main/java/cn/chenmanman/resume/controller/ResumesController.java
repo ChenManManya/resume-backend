@@ -1,5 +1,7 @@
 package cn.chenmanman.resume.controller;
 
+import cn.chenmanman.resume.common.PageRequest;
+import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.Result;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
@@ -12,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -41,6 +44,11 @@ public class ResumesController {
     @GetMapping("/my")
     public Result<List<MyResumesVO>> listResumesMe() {
         return Result.success(resumesService.listResumesMe());
+    }
+
+    @GetMapping("/my/page")
+    public Result<PageResult<MyResumesVO>> pageResumesMe(@ModelAttribute PageRequest pageRequest) {
+        return Result.success(resumesService.pageResumesMe(pageRequest));
     }
 
     @PutMapping("/{resumeId}/draft")

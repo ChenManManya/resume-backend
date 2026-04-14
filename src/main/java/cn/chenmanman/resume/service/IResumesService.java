@@ -1,5 +1,7 @@
 package cn.chenmanman.resume.service;
 
+import cn.chenmanman.resume.common.PageRequest;
+import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
 import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
@@ -21,5 +23,7 @@ public interface IResumesService {
     void exportPng(Long resumeId, ExportResumePngRequestPost request);
 
     List<MyResumesVO> listResumesMe();
+
+    PageResult<MyResumesVO> pageResumesMe(PageRequest pageRequest);
 
 }
