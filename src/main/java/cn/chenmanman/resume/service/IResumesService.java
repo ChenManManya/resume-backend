@@ -2,13 +2,11 @@ package cn.chenmanman.resume.service;
 
 import cn.chenmanman.resume.common.PageRequest;
 import cn.chenmanman.resume.common.PageResult;
-import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
+import cn.chenmanman.resume.domain.dto.resume.*;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumePdfVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -28,4 +26,8 @@ public interface IResumesService {
     PageResult<MyResumesVO> pageResumesMe(PageRequest pageRequest);
 
     public ResumesVO getResumeDetailNoLogin(Long resumeId);
+
+    void removeResume(Long resumeId);
+
+    void renameResume(@Valid RenameResumeRequest request);
 }

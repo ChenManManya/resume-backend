@@ -5,10 +5,7 @@ import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.error.ResumesErrorCode;
 import cn.chenmanman.resume.common.exception.BusinessException;
 import cn.chenmanman.resume.config.SeleniumProperties;
-import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
+import cn.chenmanman.resume.domain.dto.resume.*;
 import cn.chenmanman.resume.domain.entity.resume.ResumesEntity;
 import cn.chenmanman.resume.domain.entity.resume.TemplatesEntity;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
@@ -87,6 +84,21 @@ public class ResumesServiceImpl implements IResumesService {
     public ResumesVO getResumeDetailNoLogin(Long resumeId) {
         ResumesEntity resume = resumesMapper.selectById(resumeId);
         return buildResumeVO(resume);
+    }
+
+    @Override
+    public void removeResume(Long resumeId) {
+        ResumesEntity resumesEntity = resumesMapper.selectById(resumeId);
+        BizAssert.notNull(resumesEntity, ResumesErrorCode.RESUME_NOT_FOUND);
+        resumesMapper.deleteById(resumeId);
+    }
+
+    @Override
+    public void renameResume(RenameResumeRequest request) {
+        ResumesEntity resumesEntity = resumesMapper.selectById(request.getResumeId());
+        BizAssert.notNull(resumesEntity, ResumesErrorCode.RESUME_NOT_FOUND);
+        resumesEntity.setTitle(request.getNewTitle());
+        resumesMapper.updateById(resumesEntity);
     }
 
     @Transactional

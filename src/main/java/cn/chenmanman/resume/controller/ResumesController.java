@@ -3,10 +3,7 @@ package cn.chenmanman.resume.controller;
 import cn.chenmanman.resume.common.PageRequest;
 import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.Result;
-import cn.chenmanman.resume.domain.dto.resume.CreateResumesRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.ExportResumePdfRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.ExportResumePngRequestPost;
-import cn.chenmanman.resume.domain.dto.resume.UpdateResumesDraftRequestPut;
+import cn.chenmanman.resume.domain.dto.resume.*;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumePdfVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
@@ -19,14 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -51,6 +41,19 @@ public class ResumesController {
     @GetMapping("/pp/{resumeId}")
     public Result<ResumesVO> getResumeDetailPdf(@PathVariable Long resumeId) {
         return Result.success(resumesService.getResumeDetailNoLogin(resumeId));
+    }
+
+
+    @PostMapping("/rename")
+    public Result<Void> renameResume(@RequestBody @Valid RenameResumeRequest request) {
+        resumesService.renameResume(request);
+        return Result.success();
+    }
+
+    @DeleteMapping("/remove")
+    public Result<Void> removeResume(Long resumeId) {
+        resumesService.removeResume(resumeId);
+        return Result.success();
     }
     @GetMapping("/my")
     public Result<List<MyResumesVO>> listResumesMe() {
