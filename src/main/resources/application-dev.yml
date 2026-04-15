@@ -17,7 +17,7 @@ spring:
           max-wait: 5s
   ai:
     dashscope:
-      api-key: sk-3ab335b3bd374cbca5a88b3017f1631f
+      api-key: asdasd
       chat:
         options:
           model: qwen-flash
