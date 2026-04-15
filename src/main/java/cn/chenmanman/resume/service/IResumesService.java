@@ -4,6 +4,7 @@ import cn.chenmanman.resume.common.PageRequest;
 import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.domain.dto.resume.*;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
+import cn.chenmanman.resume.domain.vo.resume.ResumeOptimizeResult;
 import cn.chenmanman.resume.domain.vo.resume.ResumePdfVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
 import jakarta.validation.Valid;
@@ -30,4 +31,6 @@ public interface IResumesService {
     void removeResume(Long resumeId);
 
     void renameResume(@Valid RenameResumeRequest request);
+
+    ResumeOptimizeResult optimize(ResumeOptimizeRequest request);
 }

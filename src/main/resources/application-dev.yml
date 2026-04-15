@@ -15,6 +15,14 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: 5s
+  ai:
+    dashscope:
+      api-key: sk-3ab335b3bd374cbca5a88b3017f1631f
+      chat:
+        options:
+          model: qwen-flash
+          temperature: 0.4
+          top-p: 0.8
 server:
   servlet:
     context-path: /dev-api
@@ -26,3 +34,4 @@ resume:
       - --disable-gpu
       - --window-size=1280,2000
     url: http://localhost:3000
+

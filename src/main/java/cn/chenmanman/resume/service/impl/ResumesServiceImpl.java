@@ -9,6 +9,7 @@ import cn.chenmanman.resume.domain.dto.resume.*;
 import cn.chenmanman.resume.domain.entity.resume.ResumesEntity;
 import cn.chenmanman.resume.domain.entity.resume.TemplatesEntity;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
+import cn.chenmanman.resume.domain.vo.resume.ResumeOptimizeResult;
 import cn.chenmanman.resume.domain.vo.resume.ResumePdfVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
 import cn.chenmanman.resume.mapper.ResumesMapper;
@@ -17,6 +18,8 @@ import cn.chenmanman.resume.service.IResumesService;
 import cn.chenmanman.resume.utils.BizAssert;
 import cn.chenmanman.resume.utils.PdfDriverManager;
 import cn.dev33.satoken.stp.StpUtil;
+import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -28,11 +31,10 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Collections;
@@ -44,6 +46,7 @@ import java.util.Optional;
 @Service
 public class ResumesServiceImpl implements IResumesService {
 
+    private final ChatClient resumeChatClient;
     private final ResumesMapper resumesMapper;
     private final TemplatesMapper templatesMapper;
     private final ObjectMapper objectMapper;
@@ -99,6 +102,56 @@ public class ResumesServiceImpl implements IResumesService {
         BizAssert.notNull(resumesEntity, ResumesErrorCode.RESUME_NOT_FOUND);
         resumesEntity.setTitle(request.getNewTitle());
         resumesMapper.updateById(resumesEntity);
+    }
+    private String cleanJson(String raw) {
+        if (raw == null) {
+            return null;
+        }
+
+        raw = raw.trim();
+
+        // 去掉 markdown code block
+        if (raw.startsWith("```json")) {
+            raw = raw.substring(7);
+        }
+        if (raw.startsWith("```")) {
+            raw = raw.substring(3);
+        }
+        if (raw.endsWith("```")) {
+            raw = raw.substring(0, raw.length() - 3);
+        }
+
+        return raw.trim();
+    }
+    @Override
+    public ResumeOptimizeResult optimize(ResumeOptimizeRequest request) {
+        if (request == null || request.getResumeJson() == null || request.getResumeJson().isEmpty()) {
+            throw new IllegalArgumentException("简历数据不能为空");
+        }
+
+        DashScopeResponseFormat responseFormat = new DashScopeResponseFormat();
+        responseFormat.setType(DashScopeResponseFormat.Type.JSON_OBJECT);
+
+        DashScopeChatOptions runtimeOptions = DashScopeChatOptions.builder()
+                .withModel("qwen-flash")
+                .withTemperature(0.3)
+                .withResponseFormat(responseFormat)
+                .build();
+
+        String resumeJson = cleanJson(toJsonStorage(request.getResumeJson()));
+
+        ResumeOptimizeResult result = resumeChatClient.prompt()
+                .system(buildSystemPrompt(request.getModes()))
+                .user(resumeJson)
+                .options(runtimeOptions)
+                .call()
+                .entity(ResumeOptimizeResult.class);
+
+        if (result == null || result.getContent() == null || result.getStyle() == null) {
+            throw new IllegalStateException("AI 返回结果不完整");
+        }
+
+        return result;
     }
 
     @Transactional
@@ -283,6 +336,7 @@ public class ResumesServiceImpl implements IResumesService {
         }
     }
 
+
     private Object fromJsonStorage(Object value) {
         if (value == null) {
             return null;
@@ -297,4 +351,61 @@ public class ResumesServiceImpl implements IResumesService {
             return stringValue;
         }
     }
+
+
+    public String buildSystemPrompt(List<String> modes) {
+        String modeText = buildModeText(modes);
+
+        return """
+                你是一个专业的 AI 简历优化助手，名字叫「陈慢慢」。
+
+                用户会提供一份 JSON 格式的简历数据。
+
+                你的任务是根据简历中的目标岗位（title 字段）对简历进行处理。
+
+                当前启用的处理模式：
+                %s
+
+                【处理规则】
+                1. 保持原有 JSON 结构尽量稳定
+                2. 不得虚构用户不存在的经历、项目、技能、奖项
+                3. 仅优化与简历内容和样式相关的字段
+                4. 根据 title 字段，使内容更贴合目标岗位
+                5. 内容应更专业、更简洁、更符合招聘习惯
+                6. 样式应更利于阅读和展示
+                7. 如果原内容已经很好，不要过度改写
+                8. 如果某些字段无法判断，不要乱改
+
+                【输出要求】
+                1. 直接返回 JSON
+                2. 不要输出 markdown
+                3. 不要输出代码块
+                4. 不要输出解释
+                5. 输出格式必须严格为：
+
+                {
+                  "content": { ... },
+                  "style": { ... }
+                }
+                """.formatted(modeText);
+    }
+
+    private String buildModeText(List<String> modes) {
+        if (modes == null || modes.isEmpty()) {
+            return "- polish：润色表达";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (String mode : modes) {
+            switch (mode) {
+                case "polish" -> sb.append("- polish：润色表达，使语言更专业\n");
+                case "correct" -> sb.append("- correct：纠正错别字、语病、格式问题\n");
+                case "expand" -> sb.append("- expand：适度扩写，但不得虚构\n");
+                case "style" -> sb.append("- style：优化样式与排版配置\n");
+                default -> sb.append("- ").append(mode).append('\n');
+            }
+        }
+        return sb.toString();
+    }
+
 }

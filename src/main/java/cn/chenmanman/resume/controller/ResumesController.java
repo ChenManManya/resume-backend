@@ -5,6 +5,7 @@ import cn.chenmanman.resume.common.PageResult;
 import cn.chenmanman.resume.common.Result;
 import cn.chenmanman.resume.domain.dto.resume.*;
 import cn.chenmanman.resume.domain.vo.resume.MyResumesVO;
+import cn.chenmanman.resume.domain.vo.resume.ResumeOptimizeResult;
 import cn.chenmanman.resume.domain.vo.resume.ResumePdfVO;
 import cn.chenmanman.resume.domain.vo.resume.ResumesVO;
 import cn.chenmanman.resume.service.IResumesService;
@@ -90,5 +91,12 @@ public class ResumesController {
                                   @RequestBody(required = false) @Valid ExportResumePngRequestPost request) {
         resumesService.exportPng(resumeId, request);
         return Result.success();
+    }
+
+
+    @PostMapping("/optimize")
+    public Result<ResumeOptimizeResult> optimize(@RequestBody ResumeOptimizeRequest request) {
+
+        return Result.success(resumesService.optimize(request));
     }
 }
