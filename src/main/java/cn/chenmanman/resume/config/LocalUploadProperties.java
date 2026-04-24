@@ -18,6 +18,7 @@ public class LocalUploadProperties {
     private String resumePhotoDir = "resume_photos";
 
     private String articleCoverDir = "article_covers";
+    private String templatesCoverDir = "templates_cover";
 
     private long maxAvatarSizeBytes = 2 * 1024 * 1024;
     private long maxPhotoSizeBytes = 2 * 1024 * 1024;

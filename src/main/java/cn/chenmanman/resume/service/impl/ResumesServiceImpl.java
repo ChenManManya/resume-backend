@@ -400,7 +400,7 @@ public class ResumesServiceImpl implements IResumesService {
             switch (mode) {
                 case "polish" -> sb.append("- polish：润色表达，使语言更专业\n");
                 case "correct" -> sb.append("- correct：纠正错别字、语病、格式问题\n");
-                case "expand" -> sb.append("- expand：适度扩写，但不得虚构\n");
+                case "expand" -> sb.append("- expand：适度扩写，但不得虚构，例如自我评价这种可以虚构\n");
                 case "style" -> sb.append("- style：优化样式与排版配置\n");
                 default -> sb.append("- ").append(mode).append('\n');
             }
